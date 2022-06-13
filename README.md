@@ -6,9 +6,9 @@ Autores:
   - Danilo Garcia Mariano
   - Stephanie Costa Avelar
 
-1ª Etapa: Ciclo Único
-2ª Etapa: Pipeline
-3ª Etapa: Periféricos
+#1ª Etapa: Ciclo Único
+#2ª Etapa: Pipeline
+#3ª Etapa: Periféricos
 
 Instruções:
   - ADDI
