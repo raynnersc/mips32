@@ -9,3 +9,24 @@ Autores:
 1ª Etapa: Ciclo Único
 2ª Etapa: Pipeline
 3ª Etapa: Periféricos
+
+Instruções:
+  - ADDI
+  - ORI
+  - LUI
+  - DIV
+  - MULT
+  - MFHI
+  - MFLO
+  - BEQ
+  - BGTZ
+  - J
+  - JAL
+  - JR
+  - MFC0
+  - MTC0
+  - SYSCALL
+  - LW
+  - SW
+  - SLL
+  - SRL
