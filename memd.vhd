@@ -42,7 +42,9 @@ architecture comportamental of memd is
     signal ram_addr	 : std_logic_vector(MD_ADDR_WIDTH - 1 downto 0) := std_logic_vector( to_unsigned(0, MD_ADDR_WIDTH) );
 	 signal ram_addr_r : std_logic_vector(MD_ADDR_WIDTH - 1 downto 0) := std_logic_vector( to_unsigned(0, MD_ADDR_WIDTH) );
 begin
+    ram_addr <= adress_mem(MD_ADDR_WIDTH - 1 downto 0);
     process (clk)
+    --process(ram_addr,write_data_mem,mem_write,mem_read,ram)
 	 begin
         if (rising_edge(clk)) then
             if (mem_write = '1') then
@@ -51,8 +53,7 @@ begin
 				ram_addr_r <= ram_addr;
 		end if;
     end process;
-
-		read_data_mem	<= ram(to_integer(unsigned(ram_addr)));
 	
+	read_data_mem	<= ram(to_integer(unsigned(ram_addr))) when mem_read = '1';
         
 end comportamental;
