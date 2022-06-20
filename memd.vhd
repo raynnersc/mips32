@@ -54,6 +54,6 @@ begin
 		end if;
     end process;
 	
-	read_data_mem	<= ram(to_integer(unsigned(ram_addr))) when mem_read = '1';
+	read_data_mem	<= ram(to_integer(unsigned(ram_addr_r))) when mem_read = '1';
         
 end comportamental;
