@@ -109,18 +109,21 @@ architecture comportamento of processador_ciclo_unico is
     );
   end component;
 
-component ram1port_ciclounico IS
-	PORT
-	(
-		address		: IN STD_LOGIC_VECTOR (10 DOWNTO 0);
-		clock		: IN STD_LOGIC  := '1';
-		data		: IN STD_LOGIC_VECTOR (31 DOWNTO 0);
-		wren		: IN STD_LOGIC ;
-		q		: OUT STD_LOGIC_VECTOR (31 DOWNTO 0)
-	);
-END component;
-  
-  
+  component memd is
+    generic (
+      number_of_words : natural; -- número de words que a sua memória é capaz de armazenar: 4kB 
+      MD_DATA_WIDTH : natural; -- tamanho da palavra em bits
+      MD_ADDR_WIDTH : natural -- tamanho do endereco da memoria de dados em bits
+      -- MD_WORD_WIDTH	: natural
+    );
+    port (
+      clk : in std_logic;
+      mem_write, mem_read : in std_logic; --sinais do controlador
+      write_data_mem : in std_logic_vector(MD_DATA_WIDTH - 1 downto 0);
+      adress_mem : in std_logic_vector(MD_ADDR_WIDTH - 1 downto 0);
+      read_data_mem : out std_logic_vector(MD_DATA_WIDTH - 1 downto 0)
+    );
+  end component;
   component coprocessador_0 is
     generic (
       c0_out_data_in_bus_width : natural; -- tamanho do barramento de entrada de dados que comunica com o Coprocessador 0
@@ -202,16 +205,21 @@ begin
     Instrucao => aux_instrucao
   );
 
-  instancia_memd : ram1port_ciclounico
-
+  instancia_memd : memd
+  generic map(
+    number_of_words => number_of_words, -- número de words que a sua memória é capaz de armazenar: 4kB 
+    MD_DATA_WIDTH => MD_DATA_WIDTH, -- tamanho da palavra em bits
+    MD_ADDR_WIDTH => MEM_ADDR_WIDTH -- tamanho do endereco da memoria de dados em bits
+    --	MD_WORD_WIDTH	 => MD_WORD_WIDTH
+  )
   port map(
-    clock => Clock,
-    wren => aux_mem_write_enable,
-    data => aux_write_data_mem,
-    address => aux_addr_mem(10 downto 0),
-    q => aux_read_data_mem
+    clk => Clock,
+    mem_write => aux_mem_write_enable,
+    mem_read => aux_mem_read_enable, --sinais do controlador
+    write_data_mem => aux_write_data_mem,
+    adress_mem => aux_addr_mem,
+    read_data_mem => aux_read_data_mem
   );
-  
 
   instancia_unidade_de_controle_ciclo_unico : unidade_de_controle_ciclo_unico
   generic map(
