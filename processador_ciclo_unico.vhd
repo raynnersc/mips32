@@ -12,9 +12,9 @@ entity processador_ciclo_unico is
     PROC_INSTR_WIDTH : natural := 32; -- tamanho da instrução do processador em bits
     PROC_ADDR_WIDTH : natural := 12; -- tamanho do endereço da memória de programa do processador em bits
     MEM_ADDR_WIDTH : natural := 16; -- tamanho do endereço da memória de dados
-    c0_out_data_in_bus_width : natural := 44; -- tamanho do barramento de entrada de dados que comunica com o Coprocessador 0
+    c0_out_data_in_bus_width : natural := 36; -- tamanho do barramento de entrada de dados que comunica com o Coprocessador 0
     c0_in_data_out_bus_width : natural := 50; -- tamanho do barramento de saída de dados que comunica com o Coprocessador 0'
-    data_in_ctrl_out_bus_width : natural := 18; -- tamanho do barramento de controle da via de dados (DP) em bits-- WE_hi_lo
+    data_in_ctrl_out_bus_width : natural := 19; -- tamanho do barramento de controle da via de dados (DP) em bits-- WE_hi_lo
     data_out_ctrl_in_bus_width : natural := 2;
     pc_width : natural := 12;
     fr_addr_width : natural := 5; -- tamanho da linha de endereços do banco de registradores em bits
@@ -26,7 +26,8 @@ entity processador_ciclo_unico is
     CONTROL_UNIT_INSTR_WIDTH : natural := 13;
     CONTROL_UNIT_OPCODE_WIDTH : natural := 6;
     CONTROL_UNIT_FUNCT_WIDTH : natural := 6;
-    MI_WORD_WIDTH : natural := 8
+    MI_WORD_WIDTH : natural := 8;
+	 irq_vector_width : natural := 7
   );
   port (
     --		Chaves_entrada 			: in std_logic_vector(DATA_WIDTH-1 downto 0);
@@ -34,7 +35,8 @@ entity processador_ciclo_unico is
     --Leds_vermelhos_saida : out std_logic_vector(DATA_WIDTH - 1 downto 0);
     Chave_reset : in std_logic;
     Clock : in std_logic;
-    debug_read_Rs : out std_logic_vector(3 downto 0)
+    debug_read_Rs : out std_logic_vector(3 downto 0);
+	 irq_vector	: in std_logic_vector(irq_vector_width-2 downto 0)
   );
 end processador_ciclo_unico;
 
@@ -88,8 +90,8 @@ architecture comportamento of processador_ciclo_unico is
       datapath_in : in std_logic_vector(dp_in_ctrl_bus_width - 1 downto 0); -- controle da via
       interrupt_request : in std_logic;
       cop0_we : out std_logic;
-      syscall : out std_logic;
-      bad_instr : out std_logic;
+      --syscall : out std_logic;
+      --bad_instr : out std_logic;
       data_mem_we : out std_logic;
       data_mem_re : out std_logic
     );
@@ -120,25 +122,29 @@ component ram1port_ciclounico IS
 	);
 END component;
   
-  
-  component coprocessador_0 is
-    generic (
-      c0_out_data_in_bus_width : natural; -- tamanho do barramento de entrada de dados que comunica com o Coprocessador 0
-      c0_in_data_out_bus_width : natural -- tamanho do barramento de saída de dados que comunica com o Coprocessador 0
-    );
+component coprocessador_0 is   
+	generic (
+		c0_out_data_in_bus_width      : natural;          	-- tamanho do barramento de entrada de dados que comunica com o Coprocessador 0
+		c0_in_data_out_bus_width 		: natural;          	-- tamanho do barramento de saÃ­da de dados que comunica com o Coprocessador 0
+		DATA_WIDTH 							: natural; 				-- tamanho do barramento de dados em bits
+		PROC_ADDR_WIDTH 					: natural; 				-- tamanho do endereÃ§o da memÃ³ria de programa do processador em bits
+		fr_addr_width 						: natural; 				-- tamanho da linha de endereÃ§os do banco de registradores em bits
+		irq_vector_width					: natural				-- quantidade de interrupções 
+		 );
     port (
-      --IOs Datapath
-      c0_out_data_in : out std_logic_vector(c0_out_data_in_bus_width - 1 downto 0); --Sai do c0 e vai pro datapath
-      c0_in_data_out : in std_logic_vector(c0_in_data_out_bus_width - 1 downto 0); --Sai do datapath e vai pro c0
-
-      --IOs control unit
-      interrupt_request : out std_logic;
-      cop0_we : in std_logic;
-      syscall : in std_logic;
-      bad_instr : in std_logic
-
+		clock					: in std_logic;
+		reset					: in std_logic;
+	 --IRQs
+		irq_vector  		: in std_logic_vector(irq_vector_width-2 downto 0);	--Entradas de bits para requisiÃ§Ã£o de interrupÃ§Ãµes dos perifericos
+	 --IOs Datapath
+		c0_out_data_in  	: out std_logic_vector(c0_out_data_in_bus_width - 1 downto 0);	--Sai do c0 e vai pro datapath
+		c0_in_data_out  	: in std_logic_vector(c0_in_data_out_bus_width   - 1 downto 0);	--Sai do datapath e vai pro c0
+	 --IOs control unit
+		interrupt_request : out std_logic;	--Para interromper a CPU
+		cop0_we 				: in std_logic;	--Habilita escrita no banco de regs (instruÃ§Ã£o MTC0)
+		Acknowledge			: in std_logic
     );
-  end component;
+end component;
 
   -- Declare todos os sinais auxiliares que serão necessários no seu processador_ciclo_unico a partir deste comentário.
   -- Você só deve declarar sinais auxiliares se estes forem usados como "fios" para interligar componentes.
@@ -164,12 +170,14 @@ END component;
   signal aux_addr_mem : std_logic_vector(MEM_ADDR_WIDTH - 1 downto 0) := std_logic_vector(to_unsigned(0, MEM_ADDR_WIDTH));
 
   signal aux_interrupt_request : std_logic;
-  signal aux_syscall : std_logic;
+  --signal aux_syscall : std_logic;
   signal aux_cop0_we : std_logic;
-  signal aux_bad_instr : std_logic;
+  --signal aux_bad_instr : std_logic;
 
   signal aux_instrucao_control_unit : std_logic_vector(CONTROL_UNIT_INSTR_WIDTH - 1 downto 0);
   signal aux_mem_read_enable : std_logic;
+  
+  signal aux_acknowledge		: std_logic;
 
   -- signal Clock 					: std_logic;
   --signal Chave_reset				: std_logic;
@@ -186,6 +194,7 @@ begin
   --Clock<= Clock;
   --Chave_reset<= Chave_reset;
 
+  aux_acknowledge <= aux_ctrl_out_data_in(18);
   aux_instrucao_control_unit <= aux_instrucao(23) & aux_instrucao(31 downto 26) & aux_instrucao(5 downto 0);
   --  aux_mem_read_enable <= NOT(aux_mem_write_enable);
 
@@ -228,8 +237,8 @@ begin
     datapath_in => aux_ctrl_in_data_out, --conecta a saída do Datapath com a entrada da ControlUnit
     interrupt_request => aux_interrupt_request,
     cop0_we => aux_cop0_we,
-    syscall => aux_syscall,
-    bad_instr => aux_bad_instr,
+    --syscall => aux_syscall,
+    --bad_instr => aux_bad_instr,
     data_mem_we => aux_mem_write_enable,
     data_mem_re => aux_mem_read_enable
   );
@@ -266,21 +275,28 @@ begin
     data_mem_data => aux_read_data_mem,
     debug_read_Rs => debug_read_Rs
   );
+  
   instancia_coprocessador_0 : coprocessador_0
   generic map(
-    c0_out_data_in_bus_width => c0_out_data_in_bus_width, -- tamanho do barramento de entrada de dados que comunica com o Coprocessador 0
-    c0_in_data_out_bus_width => c0_in_data_out_bus_width -- tamanho do barramento de saída de dados que comunica com o Coprocessador 0
+    c0_out_data_in_bus_width 	=> c0_out_data_in_bus_width, -- tamanho do barramento de entrada de dados que comunica com o Coprocessador 0
+    c0_in_data_out_bus_width 	=> c0_in_data_out_bus_width, -- tamanho do barramento de saída de dados que comunica com o Coprocessador 0
+	 DATA_WIDTH 					=> DATA_WIDTH,							 				-- tamanho do barramento de dados em bits
+	 PROC_ADDR_WIDTH 				=> PROC_ADDR_WIDTH,				 				-- tamanho do endereÃ§o da memÃ³ria de programa do processador em bits
+	 fr_addr_width 				=> fr_addr_width,					 				-- tamanho da linha de endereÃ§os do banco de registradores em bits
+	 irq_vector_width				=> irq_vector_width									-- quantidade de interrupções 
   )
   port map(
+	 clock => Clock,					
+	 reset => Chave_reset,					
+	 --IRQs
+	 irq_vector => irq_vector, 			--Entradas de bits para requisiÃ§Ã£o de interrupÃ§Ãµes dos perifericos
     --IOs Datapath
     c0_out_data_in => aux_c0_out_data_in, --Sai do c0 e vai pro datapath
     c0_in_data_out => aux_c0_in_data_out, --Sai do datapath e vai pro c0
-
     --IOs control unit	
     interrupt_request => aux_interrupt_request,
     cop0_we => aux_cop0_we,
-    syscall => aux_syscall,
-    bad_instr => aux_bad_instr
-  );
+	 Acknowledge => aux_acknowledge
+  );  
 
 end comportamento;
