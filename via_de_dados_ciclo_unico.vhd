@@ -252,10 +252,14 @@ architecture comportamento of via_de_dados_ciclo_unico is
   signal aux_srl_sll_sel         : std_logic;
   
   signal div_0		            	: std_logic;
-  signal aux_c0_rd					    : std_logic_vector(data_width - 1 downto 0);
-  signal aux_c0_int_vector			: std_logic_vector(pc_width - 1 downto 0);
+  signal aux_c0_rd					    : std_logic_vector(pc_width - 1 downto 0);
+  signal aux_c0_int_vector				: std_logic_vector(pc_width - 1 downto 0);
   signal aux_zero_extended_pc_plus4	: std_logic_vector(data_width - 1 downto 0);
   signal aux_ent_tipo_deslocamento	: std_logic_vector(1 downto 0);
+  signal aux_mux21pc_out				: std_logic_vector(pc_width - 1 downto 0);
+  signal aux_ack							: std_logic;
+  signal aux_epc							: std_logic_vector(pc_width - 1 downto 0);
+  signal aux_c0_rd_ext					: std_logic_vector(data_width - 1 downto 0);
 
  begin
 
@@ -276,12 +280,14 @@ architecture comportamento of via_de_dados_ciclo_unico is
   c0_bus_out(36 downto 5) <= aux_data_outrt;
   c0_bus_out(4 downto 0) <= aux_write_rd; 
 
-  aux_c0_rd 			<= c0_bus_in(43 downto 12);
+  aux_epc				<= c0_bus_in(35 downto 24);
+  aux_c0_rd 			<= c0_bus_in(23 downto 12);
   aux_c0_int_vector 	<= c0_bus_in(11 downto 0);
 
   controle_out(1) <= aux_data_outrs(data_width - 1);
   controle_out(0) <= zero_alu;
 
+  aux_ack			<= controle_in(18);
   aux_srl_sll_sel <= controle_in(17);
   aux_ext_type <= controle_in(16);
   aux_sel_mult_div <= controle_in(15);
@@ -302,6 +308,7 @@ architecture comportamento of via_de_dados_ciclo_unico is
   
   aux_zero_extended_pc_plus4 <= x"00000" & aux_pc_plus4;
   aux_ent_tipo_deslocamento <=  "0" & aux_srl_sll_sel;
+  aux_c0_rd_ext <= x"00000" & aux_c0_rd;
 
 	-- A partir deste comentário instancie todos o componentes que serão usados na sua via_de_dados_ciclo_unico.
 	-- A instanciação do componente deve começar com um nome que você deve atribuir para a referida instancia seguido de : e seguido do nome
@@ -466,7 +473,7 @@ architecture comportamento of via_de_dados_ciclo_unico is
         dado_ent_0 => aux_mux41_pc_out,
         dado_ent_1 => aux_c0_int_vector, --saída do coprocessador INT_VECTOR
         sele_ent => aux_pcsrc(2),
-        dado_sai => aux_novo_pc
+        dado_sai => aux_mux21pc_out
       );
 
     instancia_mux81_wd3 : mux81
@@ -479,7 +486,7 @@ architecture comportamento of via_de_dados_ciclo_unico is
         dado_ent_1 => aux_mem_data,
         dado_ent_2 => aux_lo_out,
         dado_ent_3 => aux_hi_out,
-        dado_ent_4 => aux_c0_rd, --saída do coprocessador C0_RD
+        dado_ent_4 => aux_c0_rd_ext, --saída do coprocessador C0_RD
         dado_ent_5 => aux_zero_extended_pc_plus4,
         dado_ent_6 => aux_lui,
         dado_ent_7 => aux_shifter_out,
@@ -531,4 +538,15 @@ architecture comportamento of via_de_dados_ciclo_unico is
     		sai_rd_dado => aux_shifter_out
 	    );
       
+	 instancia_mux21_EPC : mux21
+      generic map(
+        largura_dado => pc_width
+      )
+      port map (
+        dado_ent_0 => aux_mux21pc_out,
+        dado_ent_1 =>  aux_epc,
+        dado_sai => aux_novo_pc,
+		  sele_ent => aux_ack
+      );
+		
 end architecture comportamento;
