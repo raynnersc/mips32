@@ -41,9 +41,15 @@ LIBRARY altera_mf;
 USE altera_mf.altera_mf_components.all;
 
 ENTITY ram1port_ciclounico IS
+    generic (
+        number_of_words : natural; -- número de words que a sua memória é capaz de armazenar
+        MD_DATA_WIDTH   : natural; -- tamanho do dado de leitura e escrita
+	--	  MD_WORD_WIDTH	: natural;  -- Tamanho da palavra
+        MD_ADDR_WIDTH   : natural  -- tamanho do endereco da memoria de dados em bits
+    );
 	PORT
 	(
-		address		: IN STD_LOGIC_VECTOR (10 DOWNTO 0);
+		address		: IN STD_LOGIC_VECTOR (MD_ADDR_WIDTH-1 DOWNTO 0);
 		clock		: IN STD_LOGIC  := '1';
 		data		: IN STD_LOGIC_VECTOR (31 DOWNTO 0);
 		wren		: IN STD_LOGIC ;
@@ -66,14 +72,14 @@ BEGIN
 		intended_device_family => "MAX 10",
 		lpm_hint => "ENABLE_RUNTIME_MOD=NO",
 		lpm_type => "altsyncram",
-		numwords_a => 2048,
+		numwords_a => number_of_words,
 		operation_mode => "SINGLE_PORT",
 		outdata_aclr_a => "NONE",
 		outdata_reg_a => "CLOCK0",
 		power_up_uninitialized => "FALSE",
 		read_during_write_mode_port_a => "OLD_DATA",
-		widthad_a => 11,
-		width_a => 32,
+		widthad_a => MD_ADDR_WIDTH,
+		width_a => MD_DATA_WIDTH,
 		width_byteena_a => 1
 	)
 	PORT MAP (

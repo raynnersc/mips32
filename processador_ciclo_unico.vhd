@@ -11,7 +11,7 @@ entity processador_ciclo_unico is
     DATA_WIDTH : natural := 32; -- tamanho do barramento de dados em bits
     PROC_INSTR_WIDTH : natural := 32; -- tamanho da instrução do processador em bits
     PROC_ADDR_WIDTH : natural := 12; -- tamanho do endereço da memória de programa do processador em bits
-    MEM_ADDR_WIDTH : natural := 16; -- tamanho do endereço da memória de dados
+    MEM_ADDR_WIDTH : natural := 13; -- tamanho do endereço da memória de dados
     c0_out_data_in_bus_width : natural := 36; -- tamanho do barramento de entrada de dados que comunica com o Coprocessador 0
     c0_in_data_out_bus_width : natural := 50; -- tamanho do barramento de saída de dados que comunica com o Coprocessador 0'
     data_in_ctrl_out_bus_width : natural := 19; -- tamanho do barramento de controle da via de dados (DP) em bits-- WE_hi_lo
@@ -20,14 +20,15 @@ entity processador_ciclo_unico is
     fr_addr_width : natural := 5; -- tamanho da linha de endereços do banco de registradores em bits
     ula_ctrl_width : natural := 3; -- tamanho da linha de controle da ULA
     immediate_width : natural := 16; -- tamanho do imediato
-    number_of_words : natural := 2048; -- número de words que a sua memória é capaz de armazenar: 4kB 
+    number_of_words : natural := 4096; -- número de words que a sua memória é capaz de armazenar: 4kB 
     MD_DATA_WIDTH : natural := 32; -- tamanho do dado de leitura e escrita
     --	 	MD_WORD_WIDTH				  : natural := 8; -- Tamanho da palavra
     CONTROL_UNIT_INSTR_WIDTH : natural := 13;
     CONTROL_UNIT_OPCODE_WIDTH : natural := 6;
     CONTROL_UNIT_FUNCT_WIDTH : natural := 6;
     MI_WORD_WIDTH : natural := 8;
-	 irq_vector_width : natural := 7
+	 irq_vector_width : natural := 7;
+	 ADDR_PERIPH_WIDTH : natural := 6
   );
   port (
     --		Chaves_entrada 			: in std_logic_vector(DATA_WIDTH-1 downto 0);
@@ -54,7 +55,8 @@ architecture comportamento of processador_ciclo_unico is
       fr_addr_width : natural; -- tamanho da linha de endereços do banco de registradores em bits
       ula_ctrl_width : natural; -- tamanho da linha de controle da ULA
       instr_width : natural; -- tamanho da instrução em bits
-      immediate_width : natural -- tamanho do imediato em bits
+      immediate_width : natural; -- tamanho do imediato em bits
+		data_mem_addr_width : natural
     );
     port (
       clock : in std_logic;
@@ -69,9 +71,9 @@ architecture comportamento of processador_ciclo_unico is
       instrucao : in std_logic_vector(instr_width - 1 downto 0);
       pc_out : out std_logic_vector(pc_width - 1 downto 0);
       data_mem_write_data : out std_logic_vector(data_width - 1 downto 0);
-      data_mem_addr : out std_logic_vector((data_width/2) - 1 downto 0);
+      data_mem_addr : out std_logic_vector(data_mem_addr_width - 1 downto 0);
       debug_read_Rs : out std_logic_vector(3 downto 0)
-
+		
     );
   end component;
 
@@ -112,9 +114,15 @@ architecture comportamento of processador_ciclo_unico is
   end component;
 
 component ram1port_ciclounico IS
+    generic (
+        number_of_words : natural; -- número de words que a sua memória é capaz de armazenar
+        MD_DATA_WIDTH   : natural; -- tamanho do dado de leitura e escrita
+	--	  MD_WORD_WIDTH	: natural;  -- Tamanho da palavra
+        MD_ADDR_WIDTH   : natural  -- tamanho do endereco da memoria de dados em bits
+    );
 	PORT
 	(
-		address		: IN STD_LOGIC_VECTOR (10 DOWNTO 0);
+		address		: IN STD_LOGIC_VECTOR (MD_ADDR_WIDTH-1 DOWNTO 0);
 		clock		: IN STD_LOGIC  := '1';
 		data		: IN STD_LOGIC_VECTOR (31 DOWNTO 0);
 		wren		: IN STD_LOGIC ;
@@ -143,6 +151,35 @@ component coprocessador_0 is
 		interrupt_request : out std_logic;	--Para interromper a CPU
 		cop0_we 				: in std_logic;	--Habilita escrita no banco de regs (instruÃ§Ã£o MTC0)
 		Acknowledge			: in std_logic
+    );
+end component;
+
+component address_decoder is
+	 generic(
+		ADDR_PC_WIDTH : natural;
+		ADDR_WIDTH : natural;
+		ADDR_MEMD_WIDTH : natural;
+		ADDR_MEMI_WIDTH : natural;
+		ADDR_PERIPH_WIDTH : natural
+	 );
+    port (
+		addr_pc				: in	std_logic_vector(ADDR_PC_WIDTH - 1 downto 0);
+		addr					: in	std_logic_vector(ADDR_WIDTH - 1 downto 0);
+		addr_memd			: out std_logic_vector(ADDR_MEMD_WIDTH - 1 downto 0);
+		addr_memi			: out std_logic_vector(ADDR_MEMI_WIDTH - 1 downto 0);
+		addr_periph			: out std_logic_vector(ADDR_PERIPH_WIDTH - 1 downto 0);
+		sel_read_device	: out std_logic	-- 0:MEMD ; 1:PERIPH
+    );
+end component;
+
+component mux21 is
+    generic (
+        largura_dado : natural
+    );
+    port (
+        dado_ent_0, dado_ent_1 : in std_logic_vector((largura_dado - 1) downto 0);
+        sele_ent               : in std_logic;
+        dado_sai               : out std_logic_vector((largura_dado - 1) downto 0)
     );
 end component;
 
@@ -178,6 +215,12 @@ end component;
   signal aux_mem_read_enable : std_logic;
   
   signal aux_acknowledge		: std_logic;
+  signal aux_addr_memd			: std_logic_vector(PROC_ADDR_WIDTH - 1 downto 0);
+  signal aux_addr_memi			: std_logic_vector(PROC_ADDR_WIDTH - 1 downto 0);
+  signal aux_addr_periph		: std_logic_vector(ADDR_PERIPH_WIDTH - 1 downto 0);
+  signal aux_sel_read_device	: std_logic;
+  signal aux_read_periph		: std_logic_vector(DATA_WIDTH - 1 downto 0);	
+  signal aux_read_device_data	: std_logic_vector(DATA_WIDTH - 1 downto 0);	
 
   -- signal Clock 					: std_logic;
   --signal Chave_reset				: std_logic;
@@ -207,17 +250,21 @@ begin
   port map(
     clk => Clock,
     reset => Chave_reset,
-    Endereco => aux_endereco,
+    Endereco => aux_addr_memi,
     Instrucao => aux_instrucao
   );
 
   instancia_memd : ram1port_ciclounico
-
+    generic map (
+	  number_of_words => number_of_words,
+	  MD_DATA_WIDTH => MD_DATA_WIDTH,
+	  MD_ADDR_WIDTH => PROC_ADDR_WIDTH
+    )
   port map(
     clock => Clock,
     wren => aux_mem_write_enable,
     data => aux_write_data_mem,
-    address => aux_addr_mem(10 downto 0),
+    address => aux_addr_memd,
     q => aux_read_data_mem
   );
   
@@ -254,7 +301,8 @@ begin
     fr_addr_width => fr_addr_width, -- tamanho da linha de endereços do banco de registradores em bits
     ula_ctrl_width => ula_ctrl_width, -- tamanho da linha de controle da ULA
     instr_width => PROC_INSTR_WIDTH, -- tamanho da instrução em bits
-    immediate_width => immediate_width -- tamanho do imediato em bits
+    immediate_width => immediate_width, -- tamanho do imediato em bits
+	 data_mem_addr_width => MEM_ADDR_WIDTH
   )
   port map(
     -- declare todas as portas da sua via_dados_ciclo_unico aqui.
@@ -272,7 +320,7 @@ begin
     --barramento com a memória de dados
     data_mem_write_data => aux_write_data_mem,
     data_mem_addr => aux_addr_mem,
-    data_mem_data => aux_read_data_mem,
+    data_mem_data => aux_read_device_data,
     debug_read_Rs => debug_read_Rs
   );
   
@@ -298,5 +346,33 @@ begin
     cop0_we => aux_cop0_we,
 	 Acknowledge => aux_acknowledge
   );  
+  
+  instancia_address_decoder : address_decoder
+  	 generic map(
+		ADDR_PC_WIDTH		=> pc_width,
+		ADDR_WIDTH 			=> MEM_ADDR_WIDTH,
+		ADDR_MEMD_WIDTH 	=> PROC_ADDR_WIDTH,
+		ADDR_MEMI_WIDTH 	=> PROC_ADDR_WIDTH,
+		ADDR_PERIPH_WIDTH => ADDR_PERIPH_WIDTH
+	 )
+    port map (
+		addr_pc				=>	aux_endereco,
+		addr					=> aux_addr_mem,
+		addr_memd			=> aux_addr_memd,
+		addr_memi			=> aux_addr_memi,
+		addr_periph			=> aux_addr_periph,
+		sel_read_device	=> aux_sel_read_device
+    );
+	 
+ instancia_mux21_read_device : mux21
+	generic map(
+	  largura_dado => DATA_WIDTH
+	)
+	port map (
+	  dado_ent_0 => aux_read_data_mem,
+	  dado_ent_1 => aux_read_periph,
+	  dado_sai => aux_read_device_data,
+	  sele_ent => aux_sel_read_device
+	);
 
 end comportamento;
