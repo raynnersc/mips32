@@ -30,7 +30,7 @@ architecture comportamental of memd is
 		return data_mem is 
 		variable tmp : data_mem := (others => (others => '0'));
 	begin 
-		for addr_pos in 0 to 2047 loop 
+		for addr_pos in 0 to number_of_words-1 loop 
 			-- Initialize each address with the address itself
 			tmp(addr_pos) := std_logic_vector(to_unsigned(addr_pos, MD_DATA_WIDTH));
 		end loop;

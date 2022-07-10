@@ -12,15 +12,16 @@ entity via_de_dados_ciclo_unico is
 	generic (
 		-- declare todos os tamanhos dos barramentos (sinais) das portas da sua via_dados_ciclo_unico aqui.
 		c0_bus_in_width      : natural;          -- tamanho do barramento de entrada de dados que comunica com o Coprocessador 0
-    c0_bus_out_width     : natural;          -- tamanho do barramento de saída de dados que comunica com o Coprocessador 0
+		c0_bus_out_width     : natural;          -- tamanho do barramento de saída de dados que comunica com o Coprocessador 0
 		in_ctrl_bus_width : natural;      -- tamanho do barramento de controle da via de dados (DP) em bits-- WE_hi_lo
-    out_ctrl_bus_width: natural;
+		out_ctrl_bus_width: natural;
 		data_width        : natural;    -- tamanho do dado em bits
 		pc_width          : natural;    -- tamanho da entrada de endereços da MI ou MP em bits (memi.vhd)
 		fr_addr_width     : natural;     -- tamanho da linha de endereços do banco de registradores em bits
 		ula_ctrl_width    : natural;     -- tamanho da linha de controle da ULA
 		instr_width       : natural;    -- tamanho da instrução em bits
-    immediate_width   : natural     -- tamanho do imediato em bits
+    immediate_width   	: natural;     -- tamanho do imediato em bits
+	 data_mem_addr_width : natural
 	);
 	port (
 		-- declare todas as portas da sua via_dados_ciclo_unico aqui.
@@ -46,7 +47,7 @@ entity via_de_dados_ciclo_unico is
     
 		pc_out          : out std_logic_vector(pc_width - 1 downto 0);
 		data_mem_write_data           : out std_logic_vector(data_width - 1 downto 0);
-    data_mem_addr   : out std_logic_vector((data_width/2) - 1 downto 0);
+    data_mem_addr   : out std_logic_vector(data_mem_addr_width - 1 downto 0);
 	 
 	 debug_read_Rs		: out std_logic_vector(3 downto 0)
 
@@ -304,7 +305,7 @@ architecture comportamento of via_de_dados_ciclo_unico is
   pc_out        <= aux_pc_out;
   
   aux_mem_data  <= data_mem_data;
-  data_mem_addr <= aux_ula_out((data_width/2) - 1 downto 0);
+  data_mem_addr <= aux_ula_out(data_mem_addr_width - 1 downto 0);
   
   aux_zero_extended_pc_plus4 <= x"00000" & aux_pc_plus4;
   aux_ent_tipo_deslocamento <=  "0" & aux_srl_sll_sel;

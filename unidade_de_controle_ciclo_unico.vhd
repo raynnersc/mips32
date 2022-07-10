@@ -80,7 +80,8 @@ architecture beh of unidade_de_controle_ciclo_unico is
         interrupt_request   :in std_logic;
         cop0_we             :out std_logic;
         syscall             :out std_logic;
-        bad_instr           :out std_logic
+        bad_instr           :out std_logic;
+		  Acknowledge			:out std_logic
     	);
     end component;
   
@@ -183,7 +184,8 @@ begin
         --syscall => syscall,
         --bad_instr => bad_instr,
         data_mem_we => data_mem_we,
-		  data_mem_re => data_mem_re
+		  data_mem_re => data_mem_re,
+		  Acknowledge => Acknowledge
       );
 
 end beh;
