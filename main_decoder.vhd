@@ -40,7 +40,8 @@ entity main_decoder is
     interrupt_request   :in std_logic;                         --IT INDICATES AN INTERRUPT REQUEST FROM COPROCESSOR 0
     cop0_we             :out std_logic;                        --ENABLE WRITING ON COPROCESSOR 0
     syscall             :out std_logic;                        --REQUEST A SYSCALL FOR COPROCESSOR 0
-    bad_instr           :out std_logic                         --IT INDICATES AN UNKNOWN INSTRUCTION 
+    bad_instr           :out std_logic;                         --IT INDICATES AN UNKNOWN INSTRUCTION
+	 Acknowledge			:out std_logic
 	);
 end;
 
@@ -73,6 +74,7 @@ architecture behavior of main_decoder is
 		 cop0_we <= '0';
 		 syscall <= '0';
 		 bad_instr <= '0';
+		 Acknowledge <= '0';
 
       if (interrupt_request = '0') then --THERE IS NO INTERRUPT
 
@@ -193,6 +195,9 @@ architecture behavior of main_decoder is
             ext_type <= '1';                    --SELECT SIGN EXTEND
             data_mem_we <= '1';                 --DATA MEMORY WRITE ENABLE
 
+			 when "111111" =>
+				Acknowledge <= '1';
+				
           when others =>                      --BAD INSTRUCTION
             we_pc <= '0';                       --STOP THE PROGRAM COUNTER
             bad_instr <= '1';                   --IT INDICATES THE STATUS "BAD INSTRUCTION"

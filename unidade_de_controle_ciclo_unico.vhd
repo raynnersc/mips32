@@ -25,8 +25,9 @@ entity unidade_de_controle_ciclo_unico is
       
         interrupt_request : in std_logic;
         cop0_we : out std_logic;
-        syscall : out std_logic;
-        bad_instr : out std_logic;
+		  --Acknowledge : out std_logic;
+        --syscall : out std_logic;
+        --bad_instr : out std_logic;
 
         data_mem_we : out std_logic;
 		  data_mem_re :out std_logic
@@ -79,7 +80,8 @@ architecture beh of unidade_de_controle_ciclo_unico is
         interrupt_request   :in std_logic;
         cop0_we             :out std_logic;
         syscall             :out std_logic;
-        bad_instr           :out std_logic
+        bad_instr           :out std_logic;
+		  Acknowledge			:out std_logic
     	);
     end component;
   
@@ -112,12 +114,14 @@ architecture beh of unidade_de_controle_ciclo_unico is
     signal aux_ula_op              : std_logic_vector(1 downto 0);
 
     signal aux_MoveC0Direction     : std_logic;
+	 signal Acknowledge				  : std_logic;
 
 begin
 
     aux_less_than_0 <= datapath_in(1);
     aux_zero <= datapath_in(0);
 
+	 datapath_out(18) <= Acknowledge;
     datapath_out(17) <= aux_srl_sll_sel;
     datapath_out(16) <= aux_ext_type;
     datapath_out(15) <= aux_sel_mult_div;
@@ -177,10 +181,11 @@ begin
 
         interrupt_request => interrupt_request,
         cop0_we => cop0_we,
-        syscall => syscall,
-        bad_instr => bad_instr,
+        --syscall => syscall,
+        --bad_instr => bad_instr,
         data_mem_we => data_mem_we,
-		  data_mem_re => data_mem_re
+		  data_mem_re => data_mem_re,
+		  Acknowledge => Acknowledge
       );
 
 end beh;
