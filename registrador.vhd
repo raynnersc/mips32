@@ -22,11 +22,10 @@ begin
     process (clk) is
     begin
         if (rising_edge(clk)) then
-            if (WE = '1') then
-                saida_dados <= entrada_dados;
-            end if;
             if (reset = '1') then
                 saida_dados <= (others =>'0');
+            elsif (WE = '1') then
+                saida_dados <= entrada_dados;
             end if;
         end if;
     end process;
