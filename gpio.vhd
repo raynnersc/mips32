@@ -4,12 +4,13 @@ use ieee.std_logic_1164.all;
 entity gpio is
     generic
     (
-        largura_registradores : natural; --tamanho dos registradores (grupo de portas com 8 I/Os)
-        ADDR_PERIPH_WIDTH     : natural;
-        DATA_WIDTH	          : natural
+        largura_registradores : natural := 8; --tamanho dos registradores (grupo de portas com 8 I/Os)
+        ADDR_PERIPH_WIDTH     : natural := 6;
+        DATA_WIDTH	         : natural := 8
     );
     port
     (
+		  we				 : in  std_logic;
         clk           : in  std_logic;
         reset         : in  std_logic;
         --
@@ -19,6 +20,8 @@ entity gpio is
         --
         portA_ie      : in std_logic;
         portB_ie      : in std_logic;
+		  portA_if		 : out std_logic;
+		  portB_if		 : out std_logic;
         pin_PORT_A    : inout std_logic_vector(DATA_WIDTH-1 downto 0);
         pin_PORT_B    : inout std_logic_vector(DATA_WIDTH-1 downto 0)
     );
@@ -50,28 +53,31 @@ architecture beh of gpio is
     end component;
 
     component gpio_mod
-        generic (
-          largura_registradores : natural;
-          ADDR_PERIPH_WIDTH : natural
-        );
-        port (
-          clk : in std_logic;
-          reset : in std_logic;
-          
-          addr : in std_logic_vector(ADDR_PERIPH_WIDTH - 1 downto 0);
-          data_in : in std_logic_vector(31 downto 0);
-          data_out : out std_logic_vector(31 downto 0);
-          
-          portA_ie : in std_logic;
-          portA_in : in std_logic_vector(7 downto 0);
-          portA_out : out std_logic_vector(7 downto 0);
-          portA_dir : out std_logic_vector(7 downto 0);
-          
-          portB_ie : in std_logic;
-          portB_in : in std_logic_vector(7 downto 0);
-          portB_out : out std_logic_vector(7 downto 0);
-          portB_dir : out std_logic_vector(7 downto 0)
-        );
+        generic(
+				largura_registradores : natural; --tamanho dos registradores (grupo de portas com 8 I/Os)
+				ADDR_PERIPH_WIDTH     : natural
+			);
+		  port(
+			  clk       : in  std_logic;
+			  reset     : in  std_logic;
+			  --
+			  we        : in  std_logic;
+			  addr      : in  std_logic_vector(ADDR_PERIPH_WIDTH - 1 downto 0);
+			  data_in   : in  std_logic_vector(31 downto 0);
+			  data_out  : out std_logic_vector(31 downto 0);
+			  -- PORT A
+			  portA_ie  : in std_logic;
+			  portA_in  : in  std_logic_vector(7 downto 0);
+			  portA_out : out std_logic_vector(7 downto 0);
+			  portA_dir : out std_logic_vector(7 downto 0);
+			  portA_if  : out std_logic;
+			  -- PORT B
+			  portB_ie  : in std_logic;
+			  portB_in  : in  std_logic_vector(7 downto 0);
+			  portB_out : out std_logic_vector(7 downto 0);
+			  portB_dir : out std_logic_vector(7 downto 0);
+			  portB_if  : out std_logic
+			);
     end component;
 
 begin
@@ -84,6 +90,7 @@ begin
         port map (
             clk => clk,
             reset => reset,
+				we => we,
             addr => addr,
             data_in => data_in,
             data_out => data_out,
@@ -91,10 +98,12 @@ begin
             portA_in => aux_portA_in,
             portA_out => aux_portA_out,
             portA_dir => aux_portA_dir,
+				portA_if => portA_if,
             portB_ie => portB_ie,
             portB_in => aux_portB_in,
             portB_out => aux_portB_out,
-            portB_dir => aux_portB_dir
+            portB_dir => aux_portB_dir,
+				portB_if => portB_if
         );
 
     PORT_A : cell_io

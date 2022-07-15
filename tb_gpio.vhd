@@ -2,29 +2,34 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity gpio_tb is
+entity tb_gpio is
 end;
 
-architecture bench of gpio_tb is
+architecture bench of tb_gpio is
 
   component gpio
-    generic (
-      largura_registradores : natural;
-      ADDR_PERIPH_WIDTH     : natural;
-      DATA_WIDTH            : natural
+    generic
+    (
+        largura_registradores : natural := 8; --tamanho dos registradores (grupo de portas com 8 I/Os)
+        ADDR_PERIPH_WIDTH     : natural := 6;
+        DATA_WIDTH	         : natural := 8
     );
-    port (
-      clk           : in std_logic;
-      reset         : in std_logic;
-      
-      addr          : in std_logic_vector(ADDR_PERIPH_WIDTH - 1 downto 0);
-      data_in       : in std_logic_vector(31 downto 0);
-      data_out      : out std_logic_vector(31 downto 0);
-      
-      portA_ie      : in std_logic;
-      portB_ie      : in std_logic;
-      pin_PORT_A    : inout std_logic_vector(DATA_WIDTH-1 downto 0);
-      pin_PORT_B    : inout std_logic_vector(DATA_WIDTH-1 downto 0)
+    port
+    (
+		  we				 : in  std_logic;
+        clk           : in  std_logic;
+        reset         : in  std_logic;
+        --
+        addr          : in  std_logic_vector(ADDR_PERIPH_WIDTH - 1 downto 0);
+        data_in       : in  std_logic_vector(31 downto 0);
+        data_out      : out std_logic_vector(31 downto 0);
+        --
+        portA_ie      : in std_logic;
+        portB_ie      : in std_logic;
+		  portA_if		 : out std_logic;
+		  portB_if		 : out std_logic;
+        pin_PORT_A    : inout std_logic_vector(DATA_WIDTH-1 downto 0);
+        pin_PORT_B    : inout std_logic_vector(DATA_WIDTH-1 downto 0)
     );
   end component;
 
@@ -36,6 +41,7 @@ architecture bench of gpio_tb is
   constant DATA_WIDTH               : natural := 8;
 
   -- Ports
+  signal we : std_logic;
   signal clk : std_logic;
   signal reset : std_logic;
   signal addr : std_logic_vector(ADDR_PERIPH_WIDTH - 1 downto 0);
@@ -43,6 +49,8 @@ architecture bench of gpio_tb is
   signal data_out : std_logic_vector(31 downto 0);
   signal portA_ie : std_logic;
   signal portB_ie : std_logic;
+  signal portA_if : std_logic;
+  signal portB_if : std_logic;
   signal pin_PORT_A : std_logic_vector(DATA_WIDTH-1 downto 0);
   signal pin_PORT_B : std_logic_vector(DATA_WIDTH-1 downto 0);
 
@@ -55,6 +63,7 @@ begin
         DATA_WIDTH            => DATA_WIDTH
     )
     port map (
+		  we				 => we,
         clk           => clk,
         reset         => reset,
         addr          => addr,
@@ -62,23 +71,30 @@ begin
         data_out      => data_out,
         portA_ie      => portA_ie,
         portB_ie      => portB_ie,
+		  portA_if      => portA_if,
+		  portB_if      => portB_if,
         pin_PORT_A    => pin_PORT_A,
         pin_PORT_B    => pin_PORT_B
     );
 
     input_process : process
     begin
-        wait until (reset = '0');
-        --              DIR_A     DIR_B                       IE_A                         IE_B                       DATAOUT_A                    DATAOUT_B
-        addr        <= "000000", "000001" after clk_period, "000110" after 2*clk_period, "000111" after 3*clk_period, "000100" after 4*clk_period, "000101" after 5*clk_period, "000000" after 6*clk_period;
-        --             Out Out Out Out In In In In            In0 - Interrupt
-        data_in     <= x"0000000F",                         x"00000001" after 2*clk_period;
+        wait until (reset = '0'); 
+		  we <= '1', '0' after 5.5*clk_period;
+		  
+		  portA_ie    				  <= '0', '1' after 9*clk_period; --Habilita interrupção para PORT_A
+        pin_PORT_A(3 downto 0)  <= x"A", x"B" after 5*clk_period, x"A" after 10.5*clk_period;
     
-        portA_ie    <= '0', '1' after 10*clk_period; --Habilita interrupção para PORT_A
-        pin_PORT_A  <= ;
+        portB_ie    				  <= '0', '1' after 9*clk_period; --Habilita interrupção para PORT_B
+        pin_PORT_B(3 downto 0)  <= x"A", x"B" after 5*clk_period, x"A" after 10.5*clk_period;
+		  
+		  wait until rising_edge(clk);
+        --              DIR_A     DIR_B                       IE_A                         IE_B                       DATAOUT_A                    DATAOUT_B                    DATAIN_A                      DATAIN_B                      IF_A                           IF_B
+        addr        <= "000000", "000001" after clk_period, "000110" after 2*clk_period, "000111" after 3*clk_period, "000100" after 4*clk_period, "000101" after 5*clk_period, "000010" after 7*clk_period, "000011" after 8*clk_period, "001000" after 11*clk_period, "001001" after 12*clk_period;
+        --             Out Out Out Out In In In In            In0 - Interrupt                    All Outs = 1                    All Outs = 0
+        data_in     <= x"0000000F",                         x"00000001" after 1.5*clk_period, x"000000F0" after 3.5*clk_period, x"00000000" after 6*clk_period;
     
-        portB_ie    <= '0', '1' after 10*clk_period; --Habilita interrupção para PORT_B
-        pin_PORT_B  <= ;
+
     end process input_process;
 
     gera_reset : process

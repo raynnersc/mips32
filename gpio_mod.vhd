@@ -12,7 +12,7 @@ entity gpio_mod is
         clk       : in  std_logic;
         reset     : in  std_logic;
         --
-        --we        : in  std_logic;
+        we        : in  std_logic;
         addr      : in  std_logic_vector(ADDR_PERIPH_WIDTH - 1 downto 0);
         data_in   : in  std_logic_vector(31 downto 0);
         data_out  : out std_logic_vector(31 downto 0);
@@ -21,17 +21,19 @@ entity gpio_mod is
         portA_in  : in  std_logic_vector(7 downto 0);
         portA_out : out std_logic_vector(7 downto 0);
         portA_dir : out std_logic_vector(7 downto 0);
+		  portA_if  : out std_logic;
         -- PORT B
         portB_ie  : in std_logic;
         portB_in  : in  std_logic_vector(7 downto 0);
         portB_out : out std_logic_vector(7 downto 0);
-        portB_dir : out std_logic_vector(7 downto 0)
+        portB_dir : out std_logic_vector(7 downto 0);
+		  portB_if  : out std_logic
     );
 end entity gpio_mod;
 
 architecture rtl of gpio_mod is
 
-    --signal aux_we       : std_logic;
+    signal aux_we       : std_logic;
     signal aux_addr     : std_logic_vector(ADDR_PERIPH_WIDTH - 1 downto 0);
     signal aux_data_in  : std_logic_vector(7 downto 0);
     signal aux_data_out : std_logic_vector(7 downto 0);
@@ -45,6 +47,12 @@ architecture rtl of gpio_mod is
     signal aux_ie_B     : std_logic_vector(7 downto 0);
     signal aux_if_A     : std_logic_vector(7 downto 0);
     signal aux_if_B     : std_logic_vector(7 downto 0);
+	 
+	 signal aux_ctrl_if	  : std_logic;
+	 signal aux_data_if_A  : std_logic_vector(7 downto 0);
+	 signal aux_data_if_B  : std_logic_vector(7 downto 0);
+	 signal aux_input_if_A : std_logic_vector(7 downto 0);
+	 signal aux_input_if_B : std_logic_vector(7 downto 0);
 
     signal old_datain_A : std_logic_vector(7 downto 0);
     signal old_datain_B : std_logic_vector(7 downto 0);
@@ -56,10 +64,11 @@ architecture rtl of gpio_mod is
             ADDR_PERIPH_WIDTH : natural
         );
         port (
-            --we          : in    std_logic;
+            we          : in    std_logic;
             addr        : in	std_logic_vector(ADDR_PERIPH_WIDTH - 1 downto 0);
             ctrl_reg    : out   std_logic_vector(5 downto 0);
-            ctrl_mux    : out   std_logic_vector(1 downto 0)
+            ctrl_mux    : out   std_logic_vector(1 downto 0);
+				ctrl_if	   : out	std_logic
         );
     end component;
 
@@ -84,23 +93,60 @@ architecture rtl of gpio_mod is
             dado_sai                                       : out std_logic_vector((largura_dado - 1) downto 0)
         );
     end component;
+	 
+	 component mux21 is
+        generic (
+            largura_dado : natural
+        );
+        port (
+            dado_ent_0, dado_ent_1	 : in std_logic_vector((largura_dado - 1) downto 0);
+            sele_ent                 : in std_logic;
+            dado_sai                 : out std_logic_vector((largura_dado - 1) downto 0)
+        );
+    end component;
 
 begin
 
     --Interligando os sinais auxiliares com os pinos do módulo GPIO
-    --aux_we <= we;
+    aux_we <= we;
     aux_addr <= addr;
     aux_data_in <= data_in(7 downto 0);
     data_out <= x"000000" & aux_data_out(7 downto 0);
+	 
+	 aux_input_if_A <= aux_data_in and detect_if_A;
+	 aux_input_if_B <= aux_data_in and detect_if_B;
+	 
+	 portA_if <= '1' when (aux_if_A /= x"00") else '0';
+	 portB_if <= '1' when (aux_if_B /= x"00") else '0';
 
     GPIO_CONTROL : gpio_address_decoder
         generic map(ADDR_PERIPH_WIDTH => ADDR_PERIPH_WIDTH)
         port map(
-            --we      => aux_we,
+            we      => aux_we,
             addr    => aux_addr, 
             ctrl_reg => aux_ctrl_reg,
-            ctrl_mux => aux_ctrl_mux
+            ctrl_mux => aux_ctrl_mux,
+				ctrl_if => aux_ctrl_if
         );
+		  
+	 SEL_DATA_IF_A : mux21
+	 generic map(largura_dado => largura_registradores)
+        port map(
+            dado_ent_0 => detect_if_A,
+            dado_ent_1 => aux_input_if_A,
+            sele_ent => aux_ctrl_if,
+            dado_sai => aux_data_if_A
+        );
+		  
+	 SEL_DATA_IF_B : mux21
+	 generic map(largura_dado => largura_registradores)
+        port map(
+            dado_ent_0 => detect_if_B,
+            dado_ent_1 => aux_input_if_B,
+            sele_ent => aux_ctrl_if,
+            dado_sai => aux_data_if_B
+        );
+
 
     SEL_DATA_OUT : mux41
         generic map(largura_dado => largura_registradores)
@@ -192,7 +238,7 @@ begin
             clk => clk,
             reset => reset,
             WE  => '1',
-            entrada_dados => detect_if_A,
+            entrada_dados => aux_data_if_A,
             saida_dados => aux_if_A
         );
     IF_B : registrador
@@ -201,11 +247,11 @@ begin
             clk => clk,
             reset => reset,
             WE  => '1',
-            entrada_dados => detect_if_B,
+            entrada_dados => aux_data_if_B,
             saida_dados => aux_if_B
         );
     
-    --Gerando a interrupção
+	 --Gerando a interrupção
     process(clk) is
     begin
         if(rising_edge (clk)) then
