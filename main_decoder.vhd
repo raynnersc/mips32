@@ -107,7 +107,7 @@ architecture behavior of main_decoder is
                 
 
               when "001100" =>                         --SYSCALL
-                we_pc <= '0';                            --DISABLE THE PROGRAM COUNTER
+                --we_pc <= '0';                            --DISABLE THE PROGRAM COUNTER
                 syscall <= '1';                          --IT INDICATES THE STATUS "SYSCALL"
 
               when "000000" =>                         --SLL
@@ -129,7 +129,7 @@ architecture behavior of main_decoder is
                 wregsrc <= "01";                         --SELECT REGISTER RD (15:11)
 
               when others =>                     --BAD INSTRUCTION
-                we_pc <= '0';                       --STOP THE PROGRAM COUNTER
+                --we_pc <= '0';                       --STOP THE PROGRAM COUNTER
                 bad_instr <= '1';                   --IT INDICATES THE STATUS "BAD INSTRUCTION"
 
             end case;
@@ -199,7 +199,7 @@ architecture behavior of main_decoder is
 				Acknowledge <= '1';
 				
           when others =>                      --BAD INSTRUCTION
-            we_pc <= '0';                       --STOP THE PROGRAM COUNTER
+            --we_pc <= '0';                       --STOP THE PROGRAM COUNTER
             bad_instr <= '1';                   --IT INDICATES THE STATUS "BAD INSTRUCTION"
 
         end case;

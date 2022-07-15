@@ -36,7 +36,7 @@ entity processador_ciclo_unico is
     --Leds_vermelhos_saida : out std_logic_vector(DATA_WIDTH - 1 downto 0);
     Chave_reset : in std_logic;
     Clock : in std_logic;
-    debug_read_Rs : out std_logic_vector(3 downto 0);
+    debug_read_Rs : out std_logic_vector(9 downto 0);
 	 irq_vector	: in std_logic_vector(irq_vector_width-2 downto 0)
   );
 end processador_ciclo_unico;
@@ -72,7 +72,7 @@ architecture comportamento of processador_ciclo_unico is
       pc_out : out std_logic_vector(pc_width - 1 downto 0);
       data_mem_write_data : out std_logic_vector(data_width - 1 downto 0);
       data_mem_addr : out std_logic_vector(data_mem_addr_width - 1 downto 0);
-      debug_read_Rs : out std_logic_vector(3 downto 0)
+      debug_read_Rs : out std_logic_vector(9 downto 0)
 		
     );
   end component;
