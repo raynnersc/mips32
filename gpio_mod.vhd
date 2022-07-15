@@ -48,7 +48,8 @@ architecture rtl of gpio_mod is
     signal aux_if_A     : std_logic_vector(7 downto 0);
     signal aux_if_B     : std_logic_vector(7 downto 0);
 	 
-	 signal aux_ctrl_if	  : std_logic;
+	 signal aux_ctrl_if_A  : std_logic;
+	 signal aux_ctrl_if_B  : std_logic;
 	 signal aux_data_if_A  : std_logic_vector(7 downto 0);
 	 signal aux_data_if_B  : std_logic_vector(7 downto 0);
 	 signal aux_input_if_A : std_logic_vector(7 downto 0);
@@ -68,7 +69,8 @@ architecture rtl of gpio_mod is
             addr        : in	std_logic_vector(ADDR_PERIPH_WIDTH - 1 downto 0);
             ctrl_reg    : out   std_logic_vector(5 downto 0);
             ctrl_mux    : out   std_logic_vector(1 downto 0);
-				ctrl_if	   : out	std_logic
+				ctrl_if_A   : out	std_logic;
+				ctrl_if_B   : out	std_logic
         );
     end component;
 
@@ -126,7 +128,8 @@ begin
             addr    => aux_addr, 
             ctrl_reg => aux_ctrl_reg,
             ctrl_mux => aux_ctrl_mux,
-				ctrl_if => aux_ctrl_if
+				ctrl_if_A => aux_ctrl_if_A,
+				ctrl_if_B => aux_ctrl_if_B
         );
 		  
 	 SEL_DATA_IF_A : mux21
@@ -134,7 +137,7 @@ begin
         port map(
             dado_ent_0 => detect_if_A,
             dado_ent_1 => aux_input_if_A,
-            sele_ent => aux_ctrl_if,
+            sele_ent => aux_ctrl_if_A,
             dado_sai => aux_data_if_A
         );
 		  
@@ -143,7 +146,7 @@ begin
         port map(
             dado_ent_0 => detect_if_B,
             dado_ent_1 => aux_input_if_B,
-            sele_ent => aux_ctrl_if,
+            sele_ent => aux_ctrl_if_B,
             dado_sai => aux_data_if_B
         );
 
@@ -252,25 +255,31 @@ begin
         );
     
 	 --Gerando a interrupção
-    process(clk) is
+    process(clk, old_datain_A, aux_datain_A, aux_ie_A, old_datain_B, aux_datain_B, aux_ie_B) is
     begin
-        if(rising_edge (clk)) then
+        --if(rising_edge (clk)) then
             if(portA_ie = '1') then                                                 --Interrupção geral do PORT_A
                 if(old_datain_A /= aux_datain_A) then
-                    detect_if_A <= aux_ie_A and (aux_datain_A xor old_datain_A);    --Interrupção de cada pino do PORT_A: se a interrupção do pino estiver ativa e detectar que a entrada é diferente da entrada do ciclo anterior
-                end if;
+                   detect_if_A <= aux_ie_A and (aux_datain_A xor old_datain_A);    --Interrupção de cada pino do PORT_A: se a interrupção do pino estiver ativa e detectar que a entrada é diferente da entrada do ciclo anterior
+                else
+						 detect_if_A <= aux_if_A and (aux_datain_A xnor old_datain_A);
+					 end if;
             else
                 detect_if_A <= x"00";
             end if;
             if(portB_ie = '1') then                                                 --Interrupção geral do PORT_B  
                 if(old_datain_B /= aux_datain_B) then
                     detect_if_B <= aux_ie_B and (aux_datain_B xor old_datain_B);    --Interrupção de cada pino do PORT_B: se a interrupção do pino estiver ativa e detectar que a entrada é diferente da entrada do ciclo anterior
-                end if;
+                else
+						  detect_if_B <= aux_if_B and (aux_datain_B xnor old_datain_B);
+					 end if;
             else
                 detect_if_B <= x"00";
             end if;
+			if(rising_edge (clk)) then
             old_datain_A <= aux_datain_A;
             old_datain_B <= aux_datain_B;
-        end if;
+			end if;
+        --end if;
     end process;
 end architecture rtl;

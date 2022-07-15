@@ -80,19 +80,19 @@ begin
     input_process : process
     begin
         wait until (reset = '0'); 
-		  we <= '1', '0' after 5.5*clk_period;
+		  we <= '1', '0' after 5.5*clk_period, '1' after 13*clk_period, '0' after 14.5*clk_period;
 		  
 		  portA_ie    				  <= '0', '1' after 9*clk_period; --Habilita interrupção para PORT_A
-        pin_PORT_A(3 downto 0)  <= x"A", x"B" after 5*clk_period, x"A" after 10.5*clk_period;
+        pin_PORT_A(3 downto 0)  <= x"A", x"B" after 5*clk_period, x"A" after 10*clk_period;
     
         portB_ie    				  <= '0', '1' after 9*clk_period; --Habilita interrupção para PORT_B
-        pin_PORT_B(3 downto 0)  <= x"E", x"F" after 5*clk_period, x"E" after 10.5*clk_period;
+        pin_PORT_B(3 downto 0)  <= x"E", x"F" after 5*clk_period, x"E" after 10*clk_period;
 		  
 		  wait until falling_edge(clk);
-        --              DIR_A     DIR_B                       IE_A                         IE_B                       DATAOUT_A                    DATAOUT_B                    DATAIN_A                      DATAIN_B                      IF_A                           IF_B
-        addr        <= "000000", "000001" after clk_period, "000110" after 2*clk_period, "000111" after 3*clk_period, "000100" after 4*clk_period, "000101" after 5*clk_period, "000010" after 7*clk_period, "000011" after 8*clk_period, "001000" after 11*clk_period, "001001" after 12*clk_period;
-        --             Out Out Out Out In In In In            In0 - Interrupt                    All Outs = 1                    All Outs = 0
-        data_in     <= x"0000000F",                         x"00000001" after 2*clk_period, x"000000F0" after 4*clk_period, x"00000000" after 6*clk_period;
+        --              DIR_A     DIR_B                       IE_A                         IE_B                       DATAOUT_A                    DATAOUT_B                    DATAIN_A                      DATAIN_B                      IF_A                           IF_B                             IF_A
+        addr        <= "000000", "000001" after clk_period, "000110" after 2*clk_period, "000111" after 3*clk_period, "000100" after 4*clk_period, "000101" after 5*clk_period, "000010" after 7*clk_period, "000011" after 8*clk_period, "001000" after 11*clk_period, "001001" after 12*clk_period, "001000" after 14*clk_period;
+        --             Out Out Out Out In In In In            In0 - Interrupt                    All Outs = 1                    All Outs = 0                  Clean the flag
+        data_in     <= x"0000000F",                         x"00000001" after 2*clk_period, x"000000F0" after 4*clk_period, x"00000000" after 6*clk_period, x"000000FE" after 13*clk_period;
     
 
     end process input_process;

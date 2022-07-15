@@ -11,7 +11,8 @@ entity gpio_address_decoder is
 		  addr        : in	std_logic_vector(ADDR_PERIPH_WIDTH - 1 downto 0);
         ctrl_reg    : out  std_logic_vector(5 downto 0);
         ctrl_mux    : out  std_logic_vector(1 downto 0);
-		  ctrl_if	  : out	std_logic
+		  ctrl_if_A	  : out	std_logic;
+		  ctrl_if_B	  : out	std_logic
     );
 end gpio_address_decoder;
 
@@ -30,15 +31,16 @@ end gpio_address_decoder;
 --          10 - IF_A
 --          11 - IF_B
 
---ctrl_if: 0 - operação normal
---         1 - reset do bit de flag
+--ctrl_if_A/B: 0 - operação normal
+--         		1 - reset do bit de flag
 
 architecture beh OF gpio_address_decoder IS
 begin
 	process(addr,we) is
 	begin
 		ctrl_reg <= "000000";
-		ctrl_if <= '0';
+		ctrl_if_A <= '0';
+		ctrl_if_B <= '0';
 		case to_integer(unsigned(addr)) is
 			when 0 =>                           --DIR_A
                 ctrl_reg(0) <= we;
@@ -66,24 +68,25 @@ begin
                 ctrl_mux 	 <= "00";
             when 8 =>                           --IF_A
 						if(we = '1') then
-							ctrl_if 	 <= '1';
+							ctrl_if_A 	 <= '1';
 						else
-							ctrl_if 	 <= '0';
+							ctrl_if_A 	 <= '0';
 						end if;
 						ctrl_reg <= "000000";
 						ctrl_mux <= "10";
             when 9 =>                           --IF_B
 						if(we = '1') then
-							ctrl_if 	 <= '1';
+							ctrl_if_B 	 <= '1';
 						else
-							ctrl_if 	 <= '0';
+							ctrl_if_B 	 <= '0';
 						end if;
 						ctrl_reg <= "000000";
 						ctrl_mux <= "11";
 			when others =>
                 ctrl_reg <= "000000";
                 ctrl_mux <= "00";
-					 ctrl_if  <= '0';
+					 ctrl_if_A  <= '0';
+					 ctrl_if_B  <= '0';
 		end case;
 
 	end process;
