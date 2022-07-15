@@ -49,7 +49,7 @@ entity via_de_dados_ciclo_unico is
 		data_mem_write_data           : out std_logic_vector(data_width - 1 downto 0);
     data_mem_addr   : out std_logic_vector(data_mem_addr_width - 1 downto 0);
 	 
-	 debug_read_Rs		: out std_logic_vector(3 downto 0)
+	 debug_read_Rs		: out std_logic_vector(9 downto 0)
 
     
 	);
@@ -268,7 +268,7 @@ architecture comportamento of via_de_dados_ciclo_unico is
 	-- os sinais que você acabou de definir.
 	-- Veja os exemplos abaixo:
   aux_read_rs   <= instrucao(25 downto 21);  -- OP OP OP OP OP OP RS RS RS RS RS RT RT RT RT RT RD RD RD RD RD SHAMT SHAMT SHAMT SHAMT SHAMT FUNCT(6bits)
-  debug_read_Rs <= aux_data_outrs(3 downto 0);
+  debug_read_Rs <= aux_data_outrs(9 downto 0);
 
   aux_read_rt   <= instrucao(20 downto 16);  -- OP OP OP OP OP OP RS RS RS RS RS RT RT RT RT RT RD RD RD RD RD
   aux_write_rd  <= instrucao(15 downto 11); -- OP OP OP OP OP OP RS RS RS RS RS RT RT RT RT RT RD RD RD RD RD

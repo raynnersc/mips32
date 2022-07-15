@@ -4,9 +4,9 @@ use ieee.std_logic_1164.all;
 entity gpio is
     generic
     (
-        largura_registradores : natural := 8; --tamanho dos registradores (grupo de portas com 8 I/Os)
-        ADDR_PERIPH_WIDTH     : natural := 6;
-        DATA_WIDTH	         : natural := 8
+        largura_registradores : natural; --tamanho dos registradores (grupo de portas com 8 I/Os)
+        ADDR_PERIPH_WIDTH     : natural;
+        DATA_WIDTH	         : natural
     );
     port
     (

@@ -22,7 +22,8 @@ entity coprocessador_0 is
 		clock					: in std_logic;
 		reset					: in std_logic;
 	 --IRQs
-		irq_vector  		: in std_logic_vector(irq_vector_width-2 downto 0);	--Entradas de bits para requisiÃ§Ã£o de interrupÃ§Ãµes dos perifericos
+		irq_vector  		: in std_logic_vector(irq_vector_width-2 downto 0);	--Entradas de bits para requisição de interrupções dos perifericos
+		ier_vector			: out std_logic_vector(1 downto 0);
 	 --IOs Datapath
 		c0_out_data_in  	: out std_logic_vector(c0_out_data_in_bus_width - 1 downto 0);	--Sai do c0 e vai pro datapath
 		c0_in_data_out  	: in std_logic_vector(c0_in_data_out_bus_width   - 1 downto 0);	--Sai do datapath e vai pro c0
@@ -149,6 +150,8 @@ end component;
 	aux_dado_ent_2 <= "00000" & aux_ifr_read;
 	irq_vector_with_div0 <= aux_DIV_0 & irq_vector;
 	aux_we_epc <= not(aux_interrupt_request);
+	
+	ier_vector <= aux_ier_read(5 downto 4);
 	
 	interrupt_request <= aux_interrupt_request_out;
 	

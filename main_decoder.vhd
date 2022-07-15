@@ -33,7 +33,7 @@ entity main_decoder is
     reg_write           :out std_logic;                        --ENABLE WRITING ON THE REGISTER FILE
     --Memory outputs
     data_mem_we         :out std_logic;                        --ENABLE WRITING ON THE DATA MEMORY
-	 data_mem_re         :out std_logic;                        --ENABLE READING ON THE DATA MEMORY
+	 --data_mem_re         :out std_logic;                        --ENABLE READING ON THE DATA MEMORY
     --Alu
     ALUOp	              :out std_logic_vector(1 downto 0);     --SELECT THE DESIRED ALU OPERATION (FOR INSTRUCTIONS THAT NEEDS ALU OPERATION BUT ARE NOT R TYPE)
     --Coprocessor 0
@@ -56,7 +56,7 @@ architecture behavior of main_decoder is
 		--DEFAULT OUTPUTS VALUES
 	  --Memory outputs
 		 data_mem_we <= '0';
-		 data_mem_re <= '0';
+		 --data_mem_re <= '0';
 	  --Datapath Outputs
 		 srl_sll_sel <= '0';
 		 ext_type <= '0';
@@ -188,7 +188,7 @@ architecture behavior of main_decoder is
             reg_write <= '1';                   --REGISTER FILE WRITE ENABLE
             wregdata <= "001";                  --SELECT DATA FROM MEMORY TO WRITE IN THE REGISTER FILE
             ext_type <= '1';                    --SELECT SIGN EXTEND
-				data_mem_re <= '1';                 --DATA MEMORY READ ENABLE
+				--data_mem_re <= '1';                 --DATA MEMORY READ ENABLE
 
           when "101011" =>                    --SW
             alusrc <= '1';                      --SELECT EXTENDED IMMEDIATE AS SECOND OPERAND OF ALU 

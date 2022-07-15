@@ -255,7 +255,7 @@ begin
         );
     
 	 --Gerando a interrupção
-    process(clk, old_datain_A, aux_datain_A, aux_ie_A, old_datain_B, aux_datain_B, aux_ie_B) is
+    process(clk,old_datain_A,aux_datain_A,aux_ie_A,old_datain_B,aux_datain_B,aux_ie_B,portA_ie,portB_ie,aux_if_A,aux_if_B) is
     begin
         --if(rising_edge (clk)) then
             if(portA_ie = '1') then                                                 --Interrupção geral do PORT_A

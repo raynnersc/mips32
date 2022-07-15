@@ -29,8 +29,8 @@ entity unidade_de_controle_ciclo_unico is
         --syscall : out std_logic;
         --bad_instr : out std_logic;
 
-        data_mem_we : out std_logic;
-		  data_mem_re :out std_logic
+        data_mem_we : out std_logic
+		  --data_mem_re :out std_logic
     );
 end unidade_de_controle_ciclo_unico;
 
@@ -73,7 +73,7 @@ architecture beh of unidade_de_controle_ciclo_unico is
         we_pc					      :out std_logic;   
         reg_write           :out std_logic;
         data_mem_we         :out std_logic;
-		  data_mem_re         :out std_logic; 
+		  --data_mem_re         :out std_logic; 
         --Alu
         ALUOp	              :out std_logic_vector(1 downto 0);
         --Coprocessor 0
@@ -184,7 +184,7 @@ begin
         --syscall => syscall,
         --bad_instr => bad_instr,
         data_mem_we => data_mem_we,
-		  data_mem_re => data_mem_re,
+		  --data_mem_re => data_mem_re,
 		  Acknowledge => Acknowledge
       );
 
