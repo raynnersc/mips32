@@ -43,16 +43,15 @@ USE altera_mf.altera_mf_components.all;
 
 ENTITY memi IS
 	generic (
-		INSTR_WIDTH   : natural; -- tamanho da instrucaoo em numero de bits
-		MI_WORD_WIDTH : natural;
-		MI_ADDR_WIDTH : natural  -- tamanho do endereco da memoria de instrucoes em numero de bits
+		INSTR_WIDTH   : natural := 32; -- tamanho da instrucaoo em numero de bits
+		MI_WORD_WIDTH : natural := 8;
+		MI_ADDR_WIDTH : natural := 12  -- tamanho do endereco da memoria de instrucoes em numero de bits
 	);
 	PORT
 	(
 		Endereco		: IN STD_LOGIC_VECTOR (MI_ADDR_WIDTH-1 DOWNTO 0);
 		clk			: IN STD_LOGIC  := '1';
-		Instrucao	: OUT STD_LOGIC_VECTOR (INSTR_WIDTH-1 DOWNTO 0);
-		reset     	: in std_logic
+		Instrucao	: OUT STD_LOGIC_VECTOR (INSTR_WIDTH-1 DOWNTO 0)
 	);
 END memi;
 
@@ -61,10 +60,12 @@ ARCHITECTURE SYN OF memi IS
 
 	SIGNAL sub_wire0	: STD_LOGIC_VECTOR (INSTR_WIDTH-1 DOWNTO 0);
 	SIGNAL sub_addr	: STD_LOGIC_VECTOR (MI_ADDR_WIDTH-1 DOWNTO 0);
+	SIGNAL sub_clk		: STD_LOGIC;
 
 BEGIN
 	Instrucao    <= sub_wire0(INSTR_WIDTH-1 DOWNTO 0);
 	sub_addr 	 <= std_logic_vector(unsigned(Endereco)/4);
+	sub_clk		 <= not clk;
 
 	altsyncram_component : altsyncram
 	GENERIC MAP (
@@ -75,17 +76,17 @@ BEGIN
 		intended_device_family => "MAX 10",
 		lpm_hint => "ENABLE_RUNTIME_MOD=NO",
 		lpm_type => "altsyncram",
-		numwords_a => (2 ** (MI_ADDR_WIDTH-2)),
+		numwords_a => (2**(MI_ADDR_WIDTH-2)),
 		operation_mode => "ROM",
 		outdata_aclr_a => "NONE",
-		outdata_reg_a => "CLOCK0",
+		--outdata_reg_a => "CLOCK0",
 		widthad_a => (MI_ADDR_WIDTH-2),
 		width_a => INSTR_WIDTH,
-		width_byteena_a => 1
+		width_byteena_a => INSTR_WIDTH
 	)
 	PORT MAP (
 		address_a => sub_addr(MI_ADDR_WIDTH-3 downto 0),
-		clock0 => clk,
+		clock0 => sub_clk,
 		q_a => sub_wire0
 	);
 
