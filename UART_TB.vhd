@@ -23,7 +23,7 @@ component UART_CTL is
 		tx					: out std_logic;
 		rx					: in std_logic;
 		
-		reg_addr			: in std_logic_vector(3 downto 0);
+		reg_addr			: in std_logic_vector(4 downto 0);
 		data_in			: in std_logic_vector(DATA_WIDTH-1 downto 0);
 		write_enable	: in std_logic;
 		data_out			: out std_logic_vector(DATA_WIDTH-1 downto 0);
@@ -35,11 +35,11 @@ end component;
   constant clk_half_period : time := 10 ns;
    
 		signal clock				: std_logic := '0';
-		signal reset				: std_logic := '0';
+		signal reset				: std_logic := '1';
 		
 		signal tx_rx				: std_logic := '1';
 		
-		signal reg_addr			: std_logic_vector(3 downto 0) := (others=>'0');
+		signal reg_addr			: std_logic_vector(4 downto 0) := (others=>'0');
 		signal data_in				: std_logic_vector(31 downto 0) := (others=>'0');
 		signal write_enable		: std_logic := '0';
 		signal data_out			: std_logic_vector(31 downto 0);
@@ -71,31 +71,43 @@ begin
   process is
   begin
  
-	reset <='1';
 	wait for clk_half_period*4;
 	reset <='0';
 	
 	--Config baud rate: Clock is 50MHz, i want 256000, so i need 195 clocks per bit (C3 em HEXA)
 	
-	reg_addr <= x"A";
+	reg_addr <= '0' & x"A";
 	data_in	<=	x"000000C3";
 	write_enable <='1';	
 	wait for clk_half_period*4;
 	
 	--Setup TX
-	reg_addr <= x"C";
+	reg_addr <= '0' & x"C";
 	data_in	<=	x"000001AB";
 	wait for clk_half_period*4;
 	write_enable <='0';	
 	
 	--Read TX status
-	reg_addr <= x"D";
+	reg_addr <= '0' & x"D";
 	
 	--Wait till Rx receive data
 	wait until inter_out(0)='1';
-	
 	--Then read data
-	reg_addr <= x"B";
+	reg_addr <= '0' & x"B";
+	wait for clk_half_period*10;
+	
+	--Acknowledges Rx interrupt, and enable Rx to receive more data
+	reg_addr <= "10111";
+	data_in	<=	x"00000001";
+	write_enable <='1';	
+	wait for clk_half_period*20;
+	
+	wait until inter_out(1)='1';
+	--Acknowledges Tx interrupt, and enable Tx to send more data
+	reg_addr <= "10110";
+	data_in	<=	x"00000001";
+	wait for clk_half_period*20;
+	
 	
   end process;
    
