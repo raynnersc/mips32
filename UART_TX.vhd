@@ -22,6 +22,7 @@ entity UART_TX is
   port (
     i_Clk       : in  std_logic;
     i_TX_DV     : in  std_logic;
+	 Ack			 : in  std_logic;
     i_TX_Byte   : in  std_logic_vector(7 downto 0);
     o_TX_Active : out std_logic;
     o_TX_Serial : out std_logic;
@@ -43,7 +44,7 @@ architecture RTL of UART_TX is
   signal r_TX_Done   : std_logic := '0';
    
 begin
-  p_UART_TX : process (i_Clk)
+  p_UART_TX : process (i_Clk,Ack)
   
   
   
@@ -123,9 +124,12 @@ begin
         when s_Cleanup =>
           o_TX_Active <= '0';
           r_TX_Done   <= '1';
-          r_SM_Main   <= s_Idle;
-           
-             
+			 if(Ack='1') then
+				r_SM_Main   <= s_Idle;
+          else
+				r_SM_Main   <= s_Cleanup;
+			 end if;
+				 
         when others =>
           r_SM_Main <= s_Idle;
  

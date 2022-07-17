@@ -3,13 +3,15 @@
 --Colhe do TX e RX sinais de interrupção e dados recebidos e envia para a CPU
 
 --Faixa de endereços de memória reservados para UART:
---0xA a 0xD
+--0xA a 0xD, x16 e x17
 
 --Locais de memória necessarios:
 -- 0xA - reg_clock_pbit 				- Ler/Escrever configuração de clocks por bit (TX e RX)
 -- 0xB - saida o_RX_Byte do RX 		- Ler dado recebido (RX)
 --	0xC - reg_tx_setup				 	- Ler/Escrever dado a ser enviado + bit de habilitação de envio (TX)
 --	0xD - saída o_TX_Active do TX   - Ler bit de status de transimissão (para saber se o TX ainda esta ocupado) (TX)
+-- 0x16- Ack Tx
+-- 0x17- Ack Rx
 
 --Operações de escrita:
 --0xA e 0xC	- será necessária a geração de WE para esses dois resgitradores
@@ -37,7 +39,7 @@ entity UART_CTL is
 		tx					: out std_logic;
 		rx					: in std_logic;
 		
-		reg_addr			: in std_logic_vector(3 downto 0);
+		reg_addr			: in std_logic_vector(4 downto 0);
 		data_in			: in std_logic_vector(DATA_WIDTH-1 downto 0);
 		write_enable	: in std_logic;
 		data_out			: out std_logic_vector(DATA_WIDTH-1 downto 0);
@@ -67,6 +69,7 @@ component UART_TX is
   port (
     i_Clk       : in  std_logic;
     i_TX_DV     : in  std_logic;
+	 Ack			 : in  std_logic;
     i_TX_Byte   : in  std_logic_vector(7 downto 0);
     o_TX_Active : out std_logic;
     o_TX_Serial : out std_logic;
@@ -82,6 +85,7 @@ component UART_RX is
   port (
     i_Clk       : in  std_logic;
     i_RX_Serial : in  std_logic;
+	 Ack			 : in  std_logic;
     o_RX_DV     : out std_logic;
     o_RX_Byte   : out std_logic_vector(7 downto 0);
 	 clocks_pbit : in  std_logic_vector(g_CLKS_PER_BIT_width-1 downto 0)
@@ -115,6 +119,9 @@ end component;
 	
 	signal aux_dado_ent_0, aux_dado_ent_1, aux_dado_ent_2, aux_dado_ent_3	: std_logic_vector(DATA_WIDTH-1 downto 0);
 	
+	signal aux_Ack_tx					: std_logic;
+	signal aux_Ack_rx					: std_logic;
+	
 begin
 
 	reset_tx_setup <= reset OR aux_tx_done;
@@ -135,6 +142,7 @@ begin
     port map (
       i_clk       => clock,
       i_tx_dv     => aux_tx_setup(tx_setup_width-1),
+		Ack			=>	aux_Ack_tx,
       i_tx_byte   => aux_tx_setup(tx_setup_width-2 downto 0),
       o_tx_active => aux_o_tx_active,
       o_tx_serial => tx,
@@ -150,6 +158,7 @@ begin
     port map (
       i_clk       => clock,
       i_rx_serial => rx,
+		Ack			=>	aux_Ack_rx,
       o_rx_dv     => inter_out(0),
       o_rx_byte   => aux_o_rx_byte,
 		clocks_pbit => aux_clocks_pbit
@@ -202,15 +211,15 @@ begin
 		
 			case reg_addr is
 			
-				when x"A" =>
+				when '0' & x"A" =>
 					aux_we_reg_clock_pbit <= write_enable;
 					aux_sel_data_out <= "00";
-				when x"B" =>
+				when '0' & x"B" =>
 					aux_sel_data_out <= "01";
-				when x"C" =>
+				when '0' & x"C" =>
 					aux_we_reg_tx_setup	<= write_enable;
 					aux_sel_data_out <= "10";
-				when x"D" =>
+				when '0' & x"D" =>
 					aux_sel_data_out <= "11";
 				when others =>
 					aux_we_reg_clock_pbit <= '0';
@@ -221,5 +230,19 @@ begin
 		
 		end process;
 		
+		process(reg_addr,write_enable,data_in)
+			begin
+				if (reg_addr="10110" AND write_enable='1' AND data_in=x"00000001") then
+					aux_Ack_tx <= '1';
+				else
+					aux_Ack_tx <= '0';
+				end if;
+				
+				if (reg_addr="10111" AND write_enable='1' AND data_in=x"00000001") then
+					aux_Ack_rx <= '1';
+				else
+					aux_Ack_rx <= '0';
+				end if;
+		end process;
 
 end RTL;
