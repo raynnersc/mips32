@@ -524,7 +524,6 @@ begin
         data_out        => aux_read_timer,
         inter_out       => irq_vector(3 downto 2)
       );
-    end;
 	 
  instancia_mux41_read_device : mux41
 	generic map(
