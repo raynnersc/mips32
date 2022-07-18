@@ -38,18 +38,18 @@ use IEEE.numeric_std.all;
  
 entity timer_ctl is
 	generic(
-		DATA_WIDTH		: natural := 32
+		DATA_WIDTH		: natural
 	);
    port(
-		clock				: in std_logic;
-		reset				: in std_logic;
+		clock			: in std_logic;
+		reset			: in std_logic;
 		
-		reg_addr			: in std_logic_vector(4 downto 0);
+		reg_addr		: in std_logic_vector(5 downto 0);
 		data_in			: in std_logic_vector(DATA_WIDTH-1 downto 0);
 		write_enable	: in std_logic;
-		data_out			: out std_logic_vector(DATA_WIDTH-1 downto 0);
+		data_out		: out std_logic_vector(DATA_WIDTH-1 downto 0);
 		inter_out		: out std_logic_vector(1 downto 0)
-		);
+	);
 end entity timer_ctl;
 
 
@@ -83,10 +83,10 @@ architecture Behave of timer_ctl is
 				clk    	: in  std_logic;
 				reset  	: in  std_logic;
 				we     	: in  std_logic;
-				target   : in  std_logic_vector(31 downto 0);
+				target  : in  std_logic_vector(31 downto 0);
 				
-				finish   : out std_logic;
-				count   	: out std_logic_vector(31 downto 0)
+				finish  : out std_logic;
+				count   : out std_logic_vector(31 downto 0)
 			);
 	end component timer;
 	
@@ -105,7 +105,7 @@ architecture Behave of timer_ctl is
 	component DivisorClock_timer is
 		port 
 		(
-			CLOCK_in : in std_logic;
+			CLOCK_in 	: in std_logic;
 			CLOCK_out   : out std_logic;
 			div_factor	: in	std_logic_vector(7 downto 0)
 		);
@@ -116,8 +116,8 @@ architecture Behave of timer_ctl is
 	
 	signal aux_clear_timerA	: std_logic;
 	signal aux_clear_timerB	: std_logic;
-	signal clock_A				: std_logic;
-	signal clock_B				: std_logic;
+	signal clock_A			: std_logic;
+	signal clock_B			: std_logic;
 	signal aux_configA		: std_logic_vector(3 downto 0);
 	signal aux_configB		: std_logic_vector(3 downto 0);
 	signal aux_targetA		: std_logic_vector(31 downto 0);
@@ -182,7 +182,7 @@ begin
         dado_ent_1 => aux_targetA,
         dado_ent_2 => aux_count_outA,
         dado_ent_3 => aux_dado_ent_3,
-		  dado_ent_4 => aux_targetB,
+		dado_ent_4 => aux_targetB,
         dado_ent_5 => aux_count_outB,
         dado_ent_6 => (others=>'0'),
         dado_ent_7 => (others=>'0'),
@@ -266,7 +266,7 @@ begin
         dado_ent_1 => "00000010",
         dado_ent_2 => "00000100",
         dado_ent_3 => "00001000",
-		  dado_ent_4 => "00010000",
+		dado_ent_4 => "00010000",
         dado_ent_5 => "00100000",
         dado_ent_6 => "01000000",
         dado_ent_7 => "10000000",
@@ -283,7 +283,7 @@ begin
         dado_ent_1 => "00000010",
         dado_ent_2 => "00000100",
         dado_ent_3 => "00001000",
-		  dado_ent_4 => "00010000",
+		dado_ent_4 => "00010000",
         dado_ent_5 => "00100000",
         dado_ent_6 => "01000000",
         dado_ent_7 => "10000000",
@@ -295,13 +295,13 @@ begin
 		--aux_clear_timerA <= (reg_addr=x"10" AND write_enable='1' AND data_in=x"00000001");
 		process(reg_addr,write_enable,data_in)
 		begin
-			if (reg_addr="10000" AND write_enable='1' AND data_in=x"00000001") then
+			if (reg_addr="010010" AND write_enable='1' AND data_in=x"00000001") then
 				aux_clear_timerA <= '1';
 			else
 				aux_clear_timerA <= '0';
 			end if;
 			
-			if (reg_addr="10100" AND write_enable='1' AND data_in=x"00000001") then
+			if (reg_addr="010110" AND write_enable='1' AND data_in=x"00000001") then
 				aux_clear_timerB <= '1';
 			else
 				aux_clear_timerB <= '0';
@@ -321,30 +321,30 @@ begin
 		
 			case(reg_addr) is
 					
-				when "01110" =>
+				when "010000" =>
 				
 					aux_we_configA	  <= write_enable;
 					
-				when "01111" =>
+				when "010001" =>
 				
 					aux_sel_data_out <= "001";
 					aux_we_targetA	  <= write_enable;
 					
-				when "10001" =>
+				when "010011" =>
 				
 					aux_sel_data_out <= "010";
 					
-				when "10010" =>
+				when "010100" =>
 				
 					aux_sel_data_out <= "011";
 					aux_we_configB	  <= write_enable;
 					
-				when "10011" =>
+				when "010101" =>
 				
 					aux_sel_data_out <= "100";
 					aux_we_targetB	  <= write_enable;
 				
-				when "10101" =>
+				when "010111" =>
 				
 					aux_sel_data_out <= "101";
 					

@@ -28,9 +28,9 @@ use ieee.numeric_std.all;
  
 entity UART_CTL is
 	generic(
-		clocks_pbit_width : natural := 19; --Min standard baud rate is 110 and max clock em DE10 is 50MHz, which yields 454545 clocks per bit. 19 bits is enough for this.
-		tx_setup_width		: natural := 9; --8 bits de dado e 1 bit de configuração (MSB)
-		DATA_WIDTH			: natural := 32
+		clocks_pbit_width : natural; --Min standard baud rate is 110 and max clock em DE10 is 50MHz, which yields 454545 clocks per bit. 19 bits is enough for this.
+		tx_setup_width		: natural; --8 bits de dado e 1 bit de configuração (MSB)
+		DATA_WIDTH			: natural
 	);
 	port(
 		clock				: in std_logic;
@@ -39,7 +39,7 @@ entity UART_CTL is
 		tx					: out std_logic;
 		rx					: in std_logic;
 		
-		reg_addr			: in std_logic_vector(4 downto 0);
+		reg_addr			: in std_logic_vector(5 downto 0);
 		data_in			: in std_logic_vector(DATA_WIDTH-1 downto 0);
 		write_enable	: in std_logic;
 		data_out			: out std_logic_vector(DATA_WIDTH-1 downto 0);
@@ -211,15 +211,15 @@ begin
 		
 			case reg_addr is
 			
-				when '0' & x"A" =>
+				when "00" & x"A" =>
 					aux_we_reg_clock_pbit <= write_enable;
 					aux_sel_data_out <= "00";
-				when '0' & x"B" =>
+				when "00" & x"B" =>
 					aux_sel_data_out <= "01";
-				when '0' & x"C" =>
+				when "00" & x"C" =>
 					aux_we_reg_tx_setup	<= write_enable;
 					aux_sel_data_out <= "10";
-				when '0' & x"D" =>
+				when "00" & x"D" =>
 					aux_sel_data_out <= "11";
 				when others =>
 					aux_we_reg_clock_pbit <= '0';
@@ -232,13 +232,13 @@ begin
 		
 		process(reg_addr,write_enable,data_in)
 			begin
-				if (reg_addr="10110" AND write_enable='1' AND data_in=x"00000001") then
+				if (reg_addr="001110" AND write_enable='1' AND data_in=x"00000001") then
 					aux_Ack_tx <= '1';
 				else
 					aux_Ack_tx <= '0';
 				end if;
 				
-				if (reg_addr="10111" AND write_enable='1' AND data_in=x"00000001") then
+				if (reg_addr="001111" AND write_enable='1' AND data_in=x"00000001") then
 					aux_Ack_rx <= '1';
 				else
 					aux_Ack_rx <= '0';

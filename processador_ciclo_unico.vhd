@@ -27,16 +27,22 @@ entity processador_ciclo_unico is
     CONTROL_UNIT_OPCODE_WIDTH 	: natural := 6;
     CONTROL_UNIT_FUNCT_WIDTH 		: natural := 6;
     MI_WORD_WIDTH 					: natural := 8;
-	 irq_vector_width 				: natural := 7;
-	 ADDR_PERIPH_WIDTH 				: natural := 6;
-	 GPIO_WIDTH							: natural := 8
+	  irq_vector_width 				: natural := 7;
+	  ADDR_PERIPH_WIDTH 				: natural := 6;
+	  GPIO_WIDTH							: natural := 8;
+    clocks_pbit_width : natural := 19; --Min standard baud rate is 110 and max clock em DE10 is 50MHz, which yields 454545 clocks per bit. 19 bits is enough for this.
+    tx_setup_width		: natural := 9 --8 bits de dado e 1 bit de configuração (MSB)
   );
   port (
     Chave_reset 		: in  std_logic;
     Clock 				: in  std_logic;
     debug_read_Rs 	: out std_logic_vector(9 downto 0);
-	 pin_PORT_A    	: inout std_logic_vector(GPIO_WIDTH-1 downto 0);
-    pin_PORT_B    	: inout std_logic_vector(GPIO_WIDTH-1 downto 0)
+	  --GPIO
+    pin_PORT_A    	: inout std_logic_vector(GPIO_WIDTH-1 downto 0);
+    pin_PORT_B    	: inout std_logic_vector(GPIO_WIDTH-1 downto 0);
+    --UART
+    tx					: out std_logic;
+    rx					: in std_logic
   );
 end processador_ciclo_unico;
 
@@ -206,13 +212,51 @@ architecture comportamento of processador_ciclo_unico is
     );
 	end component;
 
+  component UART_CTL is
+    generic(
+      clocks_pbit_width : natural; --Min standard baud rate is 110 and max clock em DE10 is 50MHz, which yields 454545 clocks per bit. 19 bits is enough for this.
+      tx_setup_width		: natural; --8 bits de dado e 1 bit de configuração (MSB)
+      DATA_WIDTH			: natural
+    );
+    port(
+      clock				: in std_logic;
+      reset				: in std_logic;
+      
+      tx					: out std_logic;
+      rx					: in std_logic;
+      
+      reg_addr			: in std_logic_vector(4 downto 0);
+      data_in			  : in std_logic_vector(DATA_WIDTH-1 downto 0);
+      write_enable	: in std_logic;
+      data_out			: out std_logic_vector(DATA_WIDTH-1 downto 0);
+      inter_out		  : out std_logic_vector(1 downto 0)
+      
+    );
+  end component;
+
+  component timer_ctl is
+    generic(
+      DATA_WIDTH		: natural
+    );
+     port(
+      clock				  : in std_logic;
+      reset				  : in std_logic;
+      
+      reg_addr			: in std_logic_vector(5 downto 0);
+      data_in			  : in std_logic_vector(DATA_WIDTH-1 downto 0);
+      write_enable	: in std_logic;
+      data_out			: out std_logic_vector(DATA_WIDTH-1 downto 0);
+      inter_out		  : out std_logic_vector(1 downto 0)
+      );
+  end component;
+
 	component mux41 is
 		 generic (
 			  largura_dado : natural
 		 );
 		 port (
-			  dado_ent_0, dado_ent_1, dado_ent_2, dado_ent_3 	: in std_logic_vector((largura_dado - 1) downto 0);
-			  sele_ent                                       	: in std_logic_vector(1 downto 0);
+			  dado_ent_0, dado_ent_1, dado_ent_2, dado_ent_3 	    : in std_logic_vector((largura_dado - 1) downto 0);
+			  sele_ent                                       	    : in std_logic_vector(1 downto 0);
            dado_sai                                       	: out std_logic_vector((largura_dado - 1) downto 0)
 		 );
 	end component;
@@ -226,23 +270,23 @@ architecture comportamento of processador_ciclo_unico is
   -- A partir deste comentário faça associações necessárias das entradas declaradas na entidade do seu processador_ciclo_unico com 
   -- os sinais que você acabou de definir.
   -- Veja os exemplos abaixo:
-  signal aux_instrucao 			: std_logic_vector(PROC_INSTR_WIDTH - 1 downto 0);
+  signal aux_instrucao 			  : std_logic_vector(PROC_INSTR_WIDTH - 1 downto 0);
   signal aux_ctrl_in_data_out : std_logic_vector(data_out_ctrl_in_bus_width - 1 downto 0);
   signal aux_ctrl_out_data_in : std_logic_vector(data_in_ctrl_out_bus_width - 1 downto 0);
 
-  signal aux_c0_out_data_in : std_logic_vector(c0_out_data_in_bus_width - 1 downto 0);
-  signal aux_c0_in_data_out : std_logic_vector(c0_in_data_out_bus_width - 1 downto 0);
+  signal aux_c0_out_data_in   : std_logic_vector(c0_out_data_in_bus_width - 1 downto 0);
+  signal aux_c0_in_data_out   : std_logic_vector(c0_in_data_out_bus_width - 1 downto 0);
 
-  signal aux_endereco : std_logic_vector(PROC_ADDR_WIDTH - 1 downto 0);
+  signal aux_endereco         : std_logic_vector(PROC_ADDR_WIDTH - 1 downto 0);
 
   signal aux_mem_write_enable : std_logic;
   signal aux_write_data_mem 	: std_logic_vector(DATA_WIDTH - 1 downto 0);
-  signal aux_read_data_mem 	: std_logic_vector(DATA_WIDTH - 1 downto 0);
-  signal aux_addr_mem 			: std_logic_vector(MEM_ADDR_WIDTH - 1 downto 0) := std_logic_vector(to_unsigned(0, MEM_ADDR_WIDTH));
+  signal aux_read_data_mem 	  : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal aux_addr_mem 			  : std_logic_vector(MEM_ADDR_WIDTH - 1 downto 0) := std_logic_vector(to_unsigned(0, MEM_ADDR_WIDTH));
 
-  signal aux_interrupt_request 	: std_logic;
---signal aux_syscall 				: std_logic;
-  signal aux_cop0_we 				: std_logic;
+  signal aux_interrupt_request : std_logic;
+--signal aux_syscall 				  : std_logic;
+  signal aux_cop0_we 				  : std_logic;
 --signal aux_bad_instr 				: std_logic;
 
   signal aux_instrucao_control_unit : std_logic_vector(CONTROL_UNIT_INSTR_WIDTH - 1 downto 0);
@@ -387,15 +431,15 @@ begin
 	 
 	 --IRQs
 	 irq_vector => irq_vector, 			--Entradas de bits para requisiÃ§Ã£o de interrupÃ§Ãµes dos perifericos
-    ier_vector => ier_vector,				--Saída de bits para habilitar/desabilitar interrupção dos periféricos
+   ier_vector => ier_vector,				--Saída de bits para habilitar/desabilitar interrupção dos periféricos
 	 --IOs Datapath
-    c0_out_data_in => aux_c0_out_data_in, --Sai do c0 e vai pro datapath
-    c0_in_data_out => aux_c0_in_data_out, --Sai do datapath e vai pro c0
+   c0_out_data_in => aux_c0_out_data_in, --Sai do c0 e vai pro datapath
+   c0_in_data_out => aux_c0_in_data_out, --Sai do datapath e vai pro c0
     
 	 --IOs control unit	
-    interrupt_request 	=> aux_interrupt_request,
-    cop0_we 				=> aux_cop0_we,
-	 Acknowledge 			=> aux_acknowledge
+   interrupt_request 	=> aux_interrupt_request,
+   cop0_we 				    => aux_cop0_we,
+	 Acknowledge 		  	=> aux_acknowledge
   );  
   
   instancia_address_decoder : address_decoder
@@ -417,7 +461,7 @@ begin
 		we_memd				=> aux_we_memd,
 		we_gpio				=> aux_we_gpio,
 		we_uart				=> aux_we_uart,
-		we_timer				=> aux_we_timer
+		we_timer			=> aux_we_timer
     );
 	 
 	 instancia_gpio : gpio
@@ -429,7 +473,7 @@ begin
 		 )
 		 port map
 		 (
-			  we				 => aux_we_gpio,
+			  we				    => aux_we_gpio,
 			  clk           => Clock,
 			  reset         => Chave_reset,
 			  --
@@ -444,6 +488,43 @@ begin
 			  pin_PORT_A    => pin_PORT_A,
 			  pin_PORT_B    => pin_PORT_B
 		 );
+
+  instancia_uart : UART_CTL
+    generic map(
+      clocks_pbit_width => clocks_pbit_width, --Min standard baud rate is 110 and max clock em DE10 is 50MHz, which yields 454545 clocks per bit. 19 bits is enough for this.
+      tx_setup_width => tx_setup_width, --8 bits de dado e 1 bit de configuração (MSB)
+      DATA_WIDTH => DATA_WIDTH
+    )
+    port map(
+      clock           => Clock,
+      reset           => Chave_reset,
+      
+      tx              => tx,
+      rx              => rx,
+      
+      reg_addr        => aux_addr_periph,
+      data_in         => aux_write_data_mem,
+      write_enable    => aux_we_uart,
+      data_out        => aux_read_uart,
+      inter_out       => irq_vector(1 downto 0)
+      
+    );
+
+    instancia_timer : timer_ctl
+      generic map(
+        DATA_WIDTH	=> DATA_WIDTH
+      )
+       port map(
+        clock           => Clock,
+        reset           => Chave_reset,
+        
+        reg_addr        => aux_addr_periph,
+        data_in         => aux_write_data_mem,
+        write_enable	  => aux_we_timer,
+        data_out        => aux_read_timer,
+        inter_out       => irq_vector(3 downto 2)
+      );
+    end component;
 	 
  instancia_mux41_read_device : mux41
 	generic map(
