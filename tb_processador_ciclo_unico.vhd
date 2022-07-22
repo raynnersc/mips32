@@ -15,25 +15,36 @@ architecture estimulos of tb_processador_ciclo_unico is
 	-- Declarar a unidade sob teste
 	component processador_ciclo_unico
 		port (
-			Chave_reset  : in std_logic;
-			Clock   : in std_logic;
-			debug_read_Rs : out std_logic_vector(3 downto 0)
-
+		Chave_reset  : in std_logic;
+		Clock   : in std_logic;
+		debug_read_Rs : out std_logic_vector(3 downto 0);
+		  --GPIO
+		 pin_PORT_A    	: inout std_logic_vector(7 downto 0);
+		 pin_PORT_B    	: inout std_logic_vector(7 downto 0);
+		 --UART
+		 tx					: out std_logic;
+		 rx					: in std_logic
 		);
 	end component;
 
-	signal clk : std_logic;
-	signal rst : std_logic;
+	signal clk 				: std_logic;
+	signal rst 				: std_logic;
 	signal debug_read_Rs : std_logic_vector(3 downto 0);
+	signal pin_PORT_A 	: std_logic_vector(7 downto 0);
+	signal pin_PORT_B 	: std_logic_vector(7 downto 0);
+	signal tx				: std_logic;
+	signal rx				: std_logic;
 
 
 	-- Definição das configurações de clock				
 	constant PERIODO    : time := 20 ns;
 	constant DUTY_CYCLE : real := 0.5;
 	constant OFFSET     : time := 5 ns;
-begin
+
+	begin
 	-- instancia o componente 
-	instancia : processador_ciclo_unico port map(Clock => clk, Chave_reset  => rst, debug_read_Rs => debug_read_Rs);
+	instancia : processador_ciclo_unico port map(Clock => clk, Chave_reset => rst, debug_read_Rs => debug_read_Rs
+																pin_PORT_A => pin_PORT_A, pin_PORT_B => pin_PORT_B, tx => tx, rx => rx);
 	
 	-- processo para gerar o sinal de clock 		
 	gera_clock : process
@@ -46,6 +57,7 @@ begin
 			wait for (PERIODO * DUTY_CYCLE);
 		end loop CLOCK_LOOP;
 	end process gera_clock;
+	
 	-- processo para gerar o estimulo de reset		
 	gera_reset : process
 	begin

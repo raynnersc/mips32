@@ -21,7 +21,7 @@ architecture Behave of timer is
 begin
 
    do_timer:
-   process (clk,we,reset,target)
+   process (clk,we,reset,target,cnt)
    begin
 		
 		if (reset='1') then

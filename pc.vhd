@@ -25,7 +25,7 @@ begin
 	begin
 		if (reset = '1') then
 		--	saida <= x"040";	--Para simular com a memoria de instruções começando em 0
-			saida <= x"000";
+			saida <= x"040";
 		elsif (rising_edge(clk)) then
 			if (we = '1') then
 				saida <= entrada;

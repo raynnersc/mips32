@@ -7,14 +7,15 @@
 --Saídas: InterA, InterB, CountA, CountB
 --Reservar 1 endereço para cada timer para limpar a interrupção
 
---	xE 	: (W/R) 	ConfigA
--- xF 	: (W/R) 	TargetA
---	x10	: (W)		ClearA
---	x11	: (R) 	CountA
--- x12 	: (W/R) 	ConfigB
---	x13	: (W/R) 	TargetB
---	x14	: (W)		ClearB
--- x15	: (R) 	CountB
+
+--	x10 	: (W/R) 	ConfigA
+-- x11 	: (W/R) 	TargetA
+--	x12	: (W)		ClearA
+--	x13	: (R) 	CountA
+-- x14 	: (W/R) 	ConfigB
+--	x15	: (W/R) 	TargetB
+--	x16	: (W)		ClearB
+-- x17	: (R) 	CountB
 
 ----6 Leituras:  MUX81
 --	xE 	: (W/R) 	ConfigA
@@ -293,15 +294,15 @@ begin
 		
 	
 		--aux_clear_timerA <= (reg_addr=x"10" AND write_enable='1' AND data_in=x"00000001");
-		process(reg_addr,write_enable,data_in)
+		process(reg_addr,write_enable,data_in, reset)
 		begin
-			if (reg_addr="010010" AND write_enable='1' AND data_in=x"00000001") then
+			if ((reg_addr="010010" AND write_enable='1' AND data_in=x"00000001") OR (reset='1')) then
 				aux_clear_timerA <= '1';
 			else
 				aux_clear_timerA <= '0';
 			end if;
 			
-			if (reg_addr="010110" AND write_enable='1' AND data_in=x"00000001") then
+			if ((reg_addr="010110" AND write_enable='1' AND data_in=x"00000001") OR (reset='1')) then
 				aux_clear_timerB <= '1';
 			else
 				aux_clear_timerB <= '0';

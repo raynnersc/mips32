@@ -43,9 +43,9 @@ USE altera_mf.altera_mf_components.all;
 
 ENTITY memi IS
 	generic (
-		INSTR_WIDTH   : natural := 32; -- tamanho da instrucaoo em numero de bits
-		MI_WORD_WIDTH : natural := 8;
-		MI_ADDR_WIDTH : natural := 12  -- tamanho do endereco da memoria de instrucoes em numero de bits
+		INSTR_WIDTH   : natural; -- tamanho da instrucaoo em numero de bits
+		--MI_WORD_WIDTH : natural;
+		MI_ADDR_WIDTH : natural  -- tamanho do endereco da memoria de instrucoes em numero de bits
 	);
 	PORT
 	(
@@ -72,7 +72,7 @@ BEGIN
 		address_aclr_a => "NONE",
 		clock_enable_input_a => "BYPASS",
 		clock_enable_output_a => "BYPASS",
-		init_file => "rom_init.mif",
+		init_file => "FibonacciGPIOTimer2.mif",
 		intended_device_family => "MAX 10",
 		lpm_hint => "ENABLE_RUNTIME_MOD=NO",
 		lpm_type => "altsyncram",

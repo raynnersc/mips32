@@ -36,7 +36,7 @@ entity processador_ciclo_unico is
   port (
     Chave_reset 		: in  std_logic;
     Clock 				: in  std_logic;
-    debug_read_Rs 	: out std_logic_vector(9 downto 0);
+    --debug_read_Rs 	: out std_logic_vector(9 downto 0);
 	  --GPIO
     pin_PORT_A    	: inout std_logic_vector(GPIO_WIDTH-1 downto 0);
     pin_PORT_B    	: inout std_logic_vector(GPIO_WIDTH-1 downto 0);
@@ -47,6 +47,26 @@ entity processador_ciclo_unico is
 end processador_ciclo_unico;
 
 architecture comportamento of processador_ciclo_unico is
+
+	component DivisorClock is
+		port 
+		(
+			CLOCK_50MHz : in std_logic;
+			reset	      : in std_logic;
+			CLOCK_1Hz   : out std_logic
+		);
+
+	end component;
+	
+	component DivisorClock10 is
+	port 
+	(
+		CLOCK_50MHz : in std_logic;
+		reset	      : in std_logic;
+		CLOCK_10Hz   : out std_logic
+	);
+
+	end component;
   
   -- declare todos os componentes que serão necessários no seu processador_ciclo_unico a partir deste comentário
   component via_de_dados_ciclo_unico is
@@ -79,8 +99,8 @@ architecture comportamento of processador_ciclo_unico is
       instrucao 				: in  std_logic_vector(instr_width - 1 downto 0);
       pc_out 					: out std_logic_vector(pc_width - 1 downto 0);
       data_mem_write_data 	: out std_logic_vector(data_width - 1 downto 0);
-      data_mem_addr 			: out std_logic_vector(data_mem_addr_width - 1 downto 0);
-      debug_read_Rs 			: out std_logic_vector(9 downto 0)
+      data_mem_addr 			: out std_logic_vector(data_mem_addr_width - 1 downto 0)
+      --debug_read_Rs 			: out std_logic_vector(9 downto 0)
 		
     );
   end component;
@@ -110,12 +130,11 @@ architecture comportamento of processador_ciclo_unico is
   component memi is
     generic (
       INSTR_WIDTH 	: natural; -- tamanho da instrução em número de bits
-      MI_ADDR_WIDTH 	: natural; -- tamanho do endereço da memória de instruções em número de bits
-      MI_WORD_WIDTH 	: natural
+      MI_ADDR_WIDTH 	: natural -- tamanho do endereço da memória de instruções em número de bits
     );
     port (
       clk 			: in std_logic;
-      reset 		: in std_logic;
+      --reset 		: in std_logic;
       Endereco 	: in std_logic_vector(MI_ADDR_WIDTH - 1 downto 0);
       Instrucao 	: out std_logic_vector(INSTR_WIDTH - 1 downto 0)
     );
@@ -225,7 +244,7 @@ architecture comportamento of processador_ciclo_unico is
       tx					: out std_logic;
       rx					: in std_logic;
       
-      reg_addr			: in std_logic_vector(4 downto 0);
+      reg_addr			: in std_logic_vector(5 downto 0);
       data_in			  : in std_logic_vector(DATA_WIDTH-1 downto 0);
       write_enable	: in std_logic;
       data_out			: out std_logic_vector(DATA_WIDTH-1 downto 0);
@@ -309,6 +328,9 @@ architecture comportamento of processador_ciclo_unico is
  
   signal irq_vector				: std_logic_vector(irq_vector_width-2 downto 0);
   signal ier_vector				: std_logic_vector(1 downto 0);
+  
+  signal clock_1k					: std_logic;
+  signal clock_10k				: std_logic;
 
   --signal Clock 					: std_logic;
   --signal Chave_reset				: std_logic;
@@ -329,15 +351,31 @@ begin
   aux_instrucao_control_unit <= aux_instrucao(23) & aux_instrucao(31 downto 26) & aux_instrucao(5 downto 0);
   --  aux_mem_read_enable <= NOT(aux_mem_write_enable);
   
+  	instancia_div1 : DivisorClock
+		port map
+		(
+			CLOCK_50MHz => Clock,
+			reset	      => Chave_reset,
+			CLOCK_1Hz   => clock_1k
+		);
+		
+	instancia_div10 : DivisorClock10
+	port map
+	(
+		CLOCK_50MHz => Clock,
+		reset	      => Chave_reset,
+		CLOCK_10Hz  => clock_10k
+	);
+  
+  
   instancia_memi : memi
   generic map(
     INSTR_WIDTH 	=> PROC_INSTR_WIDTH, -- tamanho da instrução em número de bits
-    MI_ADDR_WIDTH => PROC_ADDR_WIDTH, -- tamanho do endereço da memória de instruções em número de bits
-    MI_WORD_WIDTH => MI_WORD_WIDTH
+    MI_ADDR_WIDTH => PROC_ADDR_WIDTH -- tamanho do endereço da memória de instruções em número de bits
   )
   port map(
-    clk 			=> Clock,
-    reset 		=> Chave_reset,
+    clk 			=> clock_1k,
+    --reset 		=> Chave_reset,
     Endereco 	=> aux_addr_memi,
     Instrucao 	=> aux_instrucao
   );
@@ -349,7 +387,7 @@ begin
 	  MD_ADDR_WIDTH 	=> PROC_ADDR_WIDTH
     )
   port map(
-    clock	=> Clock,
+    clock	=> clock_1k,
     wren		=> aux_we_memd,
     data		=> aux_write_data_mem,
     address => aux_addr_memd,
@@ -394,7 +432,7 @@ begin
   )
   port map(
     -- declare todas as portas da sua via_dados_ciclo_unico aqui.
-    clock => Clock,
+    clock => clock_1k,
     reset => Chave_reset,
     
 	 --barramento que vem da Control Unit
@@ -412,8 +450,8 @@ begin
 	 --barramento com a memória de dados
     data_mem_write_data => aux_write_data_mem,
     data_mem_addr 		=> aux_addr_mem,
-    data_mem_data			=> aux_read_device_data,
-    debug_read_Rs 		=> debug_read_Rs
+    data_mem_data			=> aux_read_device_data
+    --debug_read_Rs 		=> debug_read_Rs
   );
   
   instancia_coprocessador_0 : coprocessador_0
@@ -426,7 +464,7 @@ begin
 	 irq_vector_width				=> irq_vector_width									-- quantidade de interrupções 
   )
   port map(
-	 clock => Clock,					
+	 clock => clock_1k,					
 	 reset => Chave_reset,					
 	 
 	 --IRQs
@@ -474,7 +512,7 @@ begin
 		 port map
 		 (
 			  we				    => aux_we_gpio,
-			  clk           => Clock,
+			  clk           => clock_1k,
 			  reset         => Chave_reset,
 			  --
 			  addr          => aux_addr_periph,
@@ -496,7 +534,7 @@ begin
       DATA_WIDTH => DATA_WIDTH
     )
     port map(
-      clock           => Clock,
+      clock           => clock_1k,
       reset           => Chave_reset,
       
       tx              => tx,
@@ -515,7 +553,7 @@ begin
         DATA_WIDTH	=> DATA_WIDTH
       )
        port map(
-        clock           => Clock,
+        clock           => clock_1k,
         reset           => Chave_reset,
         
         reg_addr        => aux_addr_periph,
